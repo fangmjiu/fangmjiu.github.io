@@ -4615,4 +4615,72 @@ public class ProxyTest {
         <tag>零碎知识</tag>
       </tags>
   </entry>
+  <entry>
+    <title>Proxifier设置代理链</title>
+    <url>/2023/08/24/Proxifier%E8%AE%BE%E7%BD%AE%E4%BB%A3%E7%90%86%E9%93%BE/</url>
+    <content><![CDATA[
+# 代理链
+## 简介
+为了应对复杂的内网环境，比如10.1.13.0/24段不出网，但是10.5.13.1/24段可以访问，则需要用代理链
+
+不过这里没有相应的内网环境（懒得配），所以这里就用另一种情况，以作记录
+
+## 开始
+当前出网ip地址：
+
+![](https://s3.hedgedoc.org/demo/uploads/5306e01e-20b6-4696-9a04-b463f65ba78d.png)
+
+
+当前ip：192.168.198.129
+
+![](https://s3.hedgedoc.org/demo/uploads/c341ac0d-8a84-4677-909e-425551373436.png)
+
+### 第一层代理
+这里用的是clash
+
+![](https://s3.hedgedoc.org/demo/uploads/f1a7bb8a-d8ee-4b32-8a6e-20113312ca12.png)
+
+Proxifier设置
+
+![](https://s3.hedgedoc.org/demo/uploads/62672f37-04d8-4f5d-9710-526341965a97.png)
+
+### 第二层代理
+
+![](https://s3.hedgedoc.org/demo/uploads/26adf07f-3097-4245-961f-d9d249a95971.png)
+
+Proxifier设置
+
+![](https://s3.hedgedoc.org/demo/uploads/fa357cc6-6c91-4762-ac64-35a3e745af1e.png)
+
+### Proxifier设置代理链
+![](https://s3.hedgedoc.org/demo/uploads/ef6c3e50-802e-414c-9a8f-754c5c03c2fb.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/f3049b69-792d-40db-8158-713695ebb692.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/c716d6fa-a901-48f9-94c5-b012ae1eb181.png)
+
+查看效果：
+
+![](https://s3.hedgedoc.org/demo/uploads/a57efb8b-17f7-4409-9582-3feb0ee68dc8.png)
+
+**启动！
+
+
+
+
+
+
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>实战</category>
+      </categories>
+      <tags>
+        <tag>代理</tag>
+      </tags>
+  </entry>
 </search>
