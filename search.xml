@@ -1214,10 +1214,10 @@ https://xz.aliyun.com/t/9409
   </entry>
   <entry>
     <title>5、CC4</title>
-    <url>/2023/08/22/5%E3%80%81CC4/</url>
+    <url>/2023/08/25/5%E3%80%81CC4/</url>
     <content><![CDATA[# CC4
 ## 利用版本
-jdk8（这里用的jdk8u201） &&  Commons-Collections 4（除了4.0都能用）
+jdk8（这里用的jdk8u201） &&  Commons-Collections 4所有版本
 ## CC4 Demo
 ```
 package Apache_Common_Collections.cc_1_7;
